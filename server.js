@@ -13,12 +13,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DATA_FILE = path.join(__dirname, 'kits.json');
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 
-// Cache em memória para suportar ambientes Serverless (como a Vercel)
+// Cache em memória e em /tmp para suportar ambientes Serverless (como a Vercel)
+const TMP_DATA_FILE = path.join('/tmp', 'kits.json');
 let inMemoryKits = null;
 let inMemoryConfig = null;
 
 function getKits() {
   if (inMemoryKits && inMemoryKits.length > 0) return inMemoryKits;
+  if (fs.existsSync(TMP_DATA_FILE)) {
+    try {
+      inMemoryKits = JSON.parse(fs.readFileSync(TMP_DATA_FILE, 'utf8'));
+      if (inMemoryKits && inMemoryKits.length > 0) return inMemoryKits;
+    } catch (e) {}
+  }
   if (!fs.existsSync(DATA_FILE)) return [];
   try {
     inMemoryKits = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -32,10 +39,10 @@ function saveKits(data) {
   inMemoryKits = data;
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-  } catch (err) {
-    // Em ambientes serverless como a Vercel, o sistema de arquivos é somente leitura (EROFS).
-    console.warn('[Serverless/Vercel] Gravação em disco ignorada com segurança:', err.message);
-  }
+  } catch (err) {}
+  try {
+    fs.writeFileSync(TMP_DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {}
 }
 
 function getConfig(req) {
@@ -361,10 +368,26 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
   }
 
   const kits = getKits();
-  const kit = kits.find(k => k.slug === slug);
+  let kit = kits.find(k => k.slug === slug);
 
   if (!kit) {
-    return next();
+    const nomeAmigavel = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    kit = {
+      nome: nomeAmigavel,
+      precoAncoragem: '289,90',
+      precoReal: '189,90',
+      bannerUrl: '/assets/banner-churrasco-prime.jpg',
+      itens: [
+        'Picanha Bovina Angus Selecionada',
+        'Fraldinha Grill Macia',
+        'Linguiça Toscana Especial',
+        'Pão de Alho Crocante',
+        'Farofa Especial da Casa',
+        'Carvão Vegetal 4kg'
+      ],
+      descricao: 'Kit completo para seu churrasco perfeito com carnes nobres e acompanhamentos da melhor qualidade.',
+      whatsappMsg: `Olá ChurrasBoom! Quero pedir o *${nomeAmigavel}*. Como faço para receber?`
+    };
   }
 
   const config = getConfig(req);

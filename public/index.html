@@ -1059,10 +1059,8 @@
 
     function gerarLinkDoKit(kit) {
       const domain = getActiveDomain();
-      const cacheBuster = Date.now().toString().slice(-4);
-      const itensStr = (kit.itens || []).join('|');
-      const banner = kit.bannerUrl || DEFAULT_BANNER;
-      return `${domain}/c?n=${encodeURIComponent(kit.nome)}&de=${encodeURIComponent(kit.precoAncoragem || '')}&por=${encodeURIComponent(kit.precoReal || '')}&items=${encodeURIComponent(itensStr)}&i=${encodeURIComponent(banner)}&v=${cacheBuster}`;
+      const slug = (kit.slug || kit.nome || 'kit-churrasco').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      return `${domain}/k/${slug}`;
     }
 
     // Inicialização
@@ -1390,8 +1388,12 @@
       const zapMsgPadrao = `Olá ChurrasBoom! Vi a promoção e quero pedir o *${nome}* por *R$ ${precoPor}*. Como faço para receber?`;
       const zapLinkDireto = `https://wa.me/${config.whatsappNumber || '5511918992002'}?text=${encodeURIComponent(zapMsgPadrao)}`;
 
-      // Texto completo para WhatsApp - CTA direcionando para clicar na foto do kit
-      const textoZap = `🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+      // Texto completo para WhatsApp:
+      // O link do kit fica no topo (gera a foto oficial no WhatsApp).
+      // Embaixo fica apenas a chamada para clicar na foto (sem o link duplicado embaixo)!
+      const textoZap = `${kitUrl}
+
+🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
 
 *${nome}*
 ${desc ? '_' + desc + '_\n' : ''}
@@ -1402,9 +1404,7 @@ ${itensText}
 🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)
 ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
 
-👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲
-(Ou toque no link da foto para falar direto com nosso atendimento):
-${kitUrl}`;
+👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲`;
 
       simZapMessage.textContent = textoZap;
 
