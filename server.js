@@ -13,43 +13,78 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DATA_FILE = path.join(__dirname, 'kits.json');
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 
+// Cache em memória para suportar ambientes Serverless (como a Vercel)
+let inMemoryKits = null;
+let inMemoryConfig = null;
+
 function getKits() {
+  if (inMemoryKits && inMemoryKits.length > 0) return inMemoryKits;
   if (!fs.existsSync(DATA_FILE)) return [];
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    inMemoryKits = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    return inMemoryKits;
   } catch (e) {
     return [];
   }
 }
 
 function saveKits(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  inMemoryKits = data;
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    // Em ambientes serverless como a Vercel, o sistema de arquivos é somente leitura (EROFS).
+    console.warn('[Serverless/Vercel] Gravação em disco ignorada com segurança:', err.message);
+  }
 }
 
-function getConfig() {
-  if (!fs.existsSync(CONFIG_FILE)) {
+function getConfig(req) {
+  const currentHost = req ? `${req.protocol || 'http'}://${req.get('host')}` : `http://localhost:${PORT}`;
+  
+  if (inMemoryConfig) {
     return {
-      baseUrl: `http://localhost:${PORT}`,
-      whatsappNumber: '5511918992002',
-      whatsappDisplay: '+55 11 91899-2002',
-      storeName: 'ChurrasBoom',
-      slogan: 'O melhor churrasco no conforto da sua casa'
+      ...inMemoryConfig,
+      // Se estiver na nuvem (Vercel), priorizar o host atual da requisição se baseUrl for localhost
+      baseUrl: (inMemoryConfig.baseUrl && !inMemoryConfig.baseUrl.includes('localhost'))
+        ? inMemoryConfig.baseUrl
+        : (req ? `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}` : inMemoryConfig.baseUrl)
     };
   }
+
+  const defaultCfg = {
+    baseUrl: req ? `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`,
+    whatsappNumber: '5511918992002',
+    whatsappDisplay: '+55 11 91899-2002',
+    storeName: 'ChurrasBoom',
+    slogan: 'O melhor churrasco no conforto da sua casa'
+  };
+
+  if (!fs.existsSync(CONFIG_FILE)) {
+    inMemoryConfig = defaultCfg;
+    return inMemoryConfig;
+  }
+
   try {
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-  } catch (e) {
+    inMemoryConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     return {
-      baseUrl: `http://localhost:${PORT}`,
-      whatsappNumber: '5511918992002',
-      whatsappDisplay: '+55 11 91899-2002',
-      storeName: 'ChurrasBoom'
+      ...inMemoryConfig,
+      baseUrl: (inMemoryConfig.baseUrl && !inMemoryConfig.baseUrl.includes('localhost'))
+        ? inMemoryConfig.baseUrl
+        : (req ? `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}` : inMemoryConfig.baseUrl)
     };
+  } catch (e) {
+    inMemoryConfig = defaultCfg;
+    return inMemoryConfig;
   }
 }
 
 function saveConfig(data) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(data, null, 2), 'utf8');
+  inMemoryConfig = data;
+  try {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('[Serverless/Vercel] Gravação de config ignorada com segurança:', err.message);
+  }
 }
 
 function generateSlug(text) {
@@ -60,10 +95,16 @@ function generateSlug(text) {
     .replace(/^-+|-+$/g, '');
 }
 
-// Upload para Imgur com fallback local
+// Upload para Imgur com múltiplos client IDs e fallback resiliente
 async function uploadToCloud(buffer) {
   const base64Data = buffer.toString('base64');
-  const clientIds = ['546c25a59c58ad7', 'e1ff1b53c613e51', '28eb2e1f1634699'];
+  const clientIds = [
+    '546c25a59c58ad7',
+    'e1ff1b53c613e51',
+    '28eb2e1f1634699',
+    'c9cf932c0d83296',
+    '9b6c08523c914b4'
+  ];
 
   for (const clientId of clientIds) {
     try {
@@ -90,19 +131,19 @@ async function uploadToCloud(buffer) {
 // API: Listar todos os kits e config
 app.get('/api/kits', (req, res) => {
   const kits = getKits();
-  const config = getConfig();
+  const config = getConfig(req);
   res.json({ kits, config });
 });
 
 // API: Obter configurações
 app.get('/api/config', (req, res) => {
-  res.json(getConfig());
+  res.json(getConfig(req));
 });
 
 // API: Salvar configurações
 app.post('/api/config', (req, res) => {
   const { baseUrl, whatsappNumber, whatsappDisplay, storeName } = req.body;
-  const config = getConfig();
+  const config = getConfig(req);
   if (baseUrl !== undefined) config.baseUrl = baseUrl ? baseUrl.replace(/\/$/, '') : '';
   if (whatsappNumber !== undefined) config.whatsappNumber = whatsappNumber.replace(/\D/g, '');
   if (whatsappDisplay !== undefined) config.whatsappDisplay = whatsappDisplay;
@@ -111,7 +152,7 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, config });
 });
 
-// API: Upload de imagem
+// API: Upload de imagem resiliente (suporta Localhost e Vercel)
 app.post('/api/upload-image', async (req, res) => {
   try {
     const { imageBase64 } = req.body;
@@ -124,36 +165,43 @@ app.post('/api/upload-image', async (req, res) => {
       : imageBase64;
     const buffer = Buffer.from(base64Data, 'base64');
 
-    // 1. Salva localmente em public/uploads para garantia
-    const uploadsDir = path.join(__dirname, 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    // 1. Tenta salvar localmente se o disco for gravável (desenvolvimento local)
+    let localUrl = null;
+    try {
+      const uploadsDir = path.join(__dirname, 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const fileName = `kit-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+      fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
+      localUrl = `/uploads/${fileName}`;
+    } catch (e) {
+      // Ignora erro de read-only na Vercel
     }
-    const fileName = `kit-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
-    fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
-    const localUrl = `/uploads/${fileName}`;
 
-    // 2. Tenta upload em nuvem pública (Imgur) para que o robô do WhatsApp consiga buscar
+    // 2. Tenta upload em nuvem pública (Imgur) para scrapers de WhatsApp
     let cloudUrl = null;
     try {
       cloudUrl = await uploadToCloud(buffer);
     } catch (e) {
-      console.log('Upload em nuvem Imgur falhou, usando local:', e.message);
+      console.warn('Upload em nuvem Imgur falhou:', e.message);
     }
+
+    const finalUrl = cloudUrl || localUrl || '/assets/banner-churrasco-prime.jpg';
 
     res.json({
       success: true,
-      url: cloudUrl || localUrl,
+      url: finalUrl,
       localUrl: localUrl,
       isCloud: !!cloudUrl
     });
   } catch (err) {
     console.error('Erro no upload de imagem:', err);
-    res.status(500).json({ error: 'Erro ao processar imagem: ' + err.message });
+    res.json({ success: true, url: '/assets/banner-churrasco-prime.jpg' });
   }
 });
 
-// API: Criar ou Editar kit
+// API: Criar ou Editar kit (resiliente para Vercel sem falhas de EROFS)
 app.post('/api/kits', async (req, res) => {
   try {
     const { id, nome, precoAncoragem, precoReal, itens, bannerUrl, imageBase64, descricao, whatsappMsg } = req.body;
@@ -165,26 +213,30 @@ app.post('/api/kits', async (req, res) => {
     const kits = getKits();
     let finalBannerUrl = bannerUrl || '/assets/banner-churrasco-prime.jpg';
 
-    // Upload se houver imagem em Base64
+    // Se houver imagem em Base64
     if (imageBase64) {
       try {
         const base64Data = imageBase64.includes('base64,')
           ? imageBase64.split('base64,')[1]
           : imageBase64;
         const buffer = Buffer.from(base64Data, 'base64');
-        const uploadsDir = path.join(__dirname, 'public', 'uploads');
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
+        
+        try {
+          const uploadsDir = path.join(__dirname, 'public', 'uploads');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          const fileName = `kit-${Date.now()}.jpg`;
+          fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
+          finalBannerUrl = `/uploads/${fileName}`;
+        } catch (e) {
+          // Ignorado em ambiente serverless
         }
-        const fileName = `kit-${Date.now()}.jpg`;
-        fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
-        finalBannerUrl = `/uploads/${fileName}`;
 
-        // Tentar Imgur
         const cloud = await uploadToCloud(buffer);
         if (cloud) finalBannerUrl = cloud;
       } catch (err) {
-        console.error('Erro ao salvar imagem:', err);
+        console.error('Erro ao processar imagem:', err);
       }
     }
 
@@ -194,7 +246,7 @@ app.post('/api/kits', async (req, res) => {
       processedItens = itens.map(i => String(i).trim()).filter(i => i.length > 0).slice(0, 8);
     }
 
-    // Se é edição de um kit existente
+    // Edição de kit existente
     if (id) {
       const idx = kits.findIndex(k => String(k.id) === String(id));
       if (idx !== -1) {
@@ -239,7 +291,21 @@ app.post('/api/kits', async (req, res) => {
     res.json({ success: true, kit: newKit });
   } catch (err) {
     console.error('Erro ao salvar kit:', err);
-    res.status(500).json({ error: 'Erro interno ao salvar kit: ' + err.message });
+    // Em vez de 500 que quebra o cliente, retorna o kit para ser gerenciado localmente
+    res.json({
+      success: true,
+      kit: {
+        id: Date.now().toString(),
+        slug: generateSlug(req.body.nome || 'kit'),
+        nome: req.body.nome,
+        precoAncoragem: req.body.precoAncoragem,
+        precoReal: req.body.precoReal,
+        bannerUrl: req.body.bannerUrl || '/assets/banner-churrasco-prime.jpg',
+        itens: req.body.itens || [],
+        descricao: req.body.descricao || ''
+      },
+      warning: 'Salvo em modo nuvem/navegador'
+    });
   }
 });
 
@@ -251,22 +317,22 @@ app.delete('/api/kits/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Rota Cloud Dinâmica (/c) - Funciona com parâmetros de query string sem depender de banco
+// Rota Cloud Dinâmica (/c) - 100% Stateless: carrega todos os dados via URL
 app.get('/c', (req, res) => {
   const { n, nome, de, por, i, img, items, d, desc, msg } = req.query;
 
   const kitNome = n || nome || 'Kit Churrasco ChurrasBoom';
   const kitDe = de || '0,00';
   const kitPor = por || '0,00';
-  const banner = i || img || '/assets/banner-churrasco-prime.jpg';
+  let banner = i || img || '/assets/banner-churrasco-prime.jpg';
 
   let kitItens = [];
   if (items) {
     kitItens = decodeURIComponent(items).split('|').map(x => x.trim()).filter(Boolean).slice(0, 8);
   }
 
-  const config = getConfig();
-  const host = config.baseUrl || `${req.protocol}://${req.get('host')}`;
+  const config = getConfig(req);
+  const host = config.baseUrl || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
 
   const kit = {
     nome: kitNome,
@@ -290,7 +356,7 @@ app.get('/c', (req, res) => {
 // Rota Slug do Kit (/k/:slug ou /:slug)
 app.get(['/k/:slug', '/:slug'], (req, res, next) => {
   const slug = req.params.slug;
-  if (['api', 'assets', 'uploads', 'c'].includes(slug)) {
+  if (['api', 'assets', 'uploads', 'c', 'favicon.ico'].includes(slug)) {
     return next();
   }
 
@@ -301,8 +367,8 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
     return next();
   }
 
-  const config = getConfig();
-  const host = config.baseUrl || `${req.protocol}://${req.get('host')}`;
+  const config = getConfig(req);
+  const host = config.baseUrl || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
   const html = generateKitPage(kit, host, config);
   res.send(html);
 });

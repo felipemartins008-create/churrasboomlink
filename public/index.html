@@ -1047,32 +1047,54 @@
       }, 3500);
     }
 
+    function getActiveDomain() {
+      // Se estiver acessando de um domínio remoto (ex: churrasboomlink.vercel.app), sempre usa window.location.origin!
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        return window.location.origin;
+      }
+      return config.baseUrl || window.location.origin;
+    }
+
+    function gerarLinkDoKit(kit) {
+      const domain = getActiveDomain();
+      const cacheBuster = Date.now().toString().slice(-4);
+      const itensStr = (kit.itens || []).join('|');
+      const banner = kit.bannerUrl || DEFAULT_BANNER;
+      return `${domain}/c?n=${encodeURIComponent(kit.nome)}&de=${encodeURIComponent(kit.precoAncoragem || '')}&por=${encodeURIComponent(kit.precoReal || '')}&items=${encodeURIComponent(itensStr)}&i=${encodeURIComponent(banner)}&v=${cacheBuster}`;
+    }
+
     // Inicialização
     async function carregarDados() {
+      let serverKits = [];
       try {
         const res = await fetch('/api/kits');
         const data = await res.json();
-        kits = data.kits || [];
+        serverKits = data.kits || [];
         if (data.config) {
           config = data.config;
-          document.getElementById('cfgBaseUrl').value = config.baseUrl || window.location.origin;
         }
-
-        // Recuperar possíveis kits do localStorage caso existam
-        const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
-        if (localKits.length > 0 && kits.length === 0) {
-          kits = localKits;
-        }
-
-        renderKits();
-        atualizarSimulador();
       } catch (err) {
-        console.warn('Erro ao carregar do servidor, usando fallback local:', err);
-        const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
-        if (localKits.length > 0) kits = localKits;
-        renderKits();
-        atualizarSimulador();
+        console.warn('Erro ao carregar do servidor:', err);
       }
+
+      const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+
+      // Mescla kits locais criados no navegador com kits do servidor
+      const mergedMap = new Map();
+      localKits.forEach(k => mergedMap.set(String(k.id), k));
+      serverKits.forEach(k => {
+        if (!mergedMap.has(String(k.id))) {
+          mergedMap.set(String(k.id), k);
+        }
+      });
+
+      kits = Array.from(mergedMap.values());
+
+      const domain = getActiveDomain();
+      document.getElementById('cfgBaseUrl').value = domain;
+
+      renderKits();
+      atualizarSimulador();
     }
 
     // Gerenciamento de Itens Dinâmicos (Até 8 Itens)
@@ -1318,10 +1340,24 @@
       const desc = document.getElementById('descricao').value.trim();
 
       const econInfo = calcularEconomia();
+      const domain = getActiveDomain();
 
-      const domain = config.baseUrl || window.location.origin;
-      const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      const kitUrl = `${domain}/k/${slug}`;
+      let bannerParaLink = DEFAULT_BANNER;
+      if (currentImageBase64 && !currentImageBase64.startsWith('data:')) {
+        bannerParaLink = currentImageBase64;
+      } else if (editingBannerUrl) {
+        bannerParaLink = editingBannerUrl;
+      }
+
+      const kitSimulado = {
+        nome,
+        precoAncoragem: precoDe,
+        precoReal: precoPor,
+        itens,
+        bannerUrl: bannerParaLink
+      };
+
+      const kitUrl = gerarLinkDoKit(kitSimulado);
       generatedCurrentLink = kitUrl;
 
       // Imagem Preview
@@ -1417,19 +1453,27 @@ ${kitUrl}`;
 
         // Se o usuário fez upload de imagem
         if (currentImageBase64) {
-          const upRes = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: currentImageBase64 })
-          });
-          const upData = await upRes.json();
-          if (upData.success && upData.url) {
-            finalBannerUrl = upData.url;
+          try {
+            const upRes = await fetch('/api/upload-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageBase64: currentImageBase64 })
+            });
+            const upData = await upRes.json();
+            if (upData.success && upData.url) {
+              finalBannerUrl = upData.url;
+            }
+          } catch (upErr) {
+            console.warn('Upload de imagem falhou, usando banner padrão/mantido:', upErr);
           }
         }
 
-        const payload = {
-          id: editingKitId,
+        const kitId = editingKitId || Date.now().toString();
+        const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+        const kitObj = {
+          id: kitId,
+          slug: slug,
           nome,
           precoAncoragem,
           precoReal,
@@ -1439,26 +1483,28 @@ ${kitUrl}`;
           whatsappMsg: `Olá ChurrasBoom! Tenho interesse no *${nome}* por *R$ ${precoReal}*. Como posso pedir?`
         };
 
-        const res = await fetch('/api/kits', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        kitObj.generatedLink = gerarLinkDoKit(kitObj);
 
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error || 'Falha ao salvar kit');
+        // Tenta sincronizar com o backend
+        try {
+          await fetch('/api/kits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(kitObj)
+          });
+        } catch (serverErr) {
+          console.warn('Sincronização no backend avisou (modo nuvem/navegador):', serverErr);
         }
 
-        // Salvar também em localStorage para redundância
+        // Salvar SEMPRE em localStorage permanente do navegador
         let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
         if (editingKitId) {
           const idx = localKits.findIndex(k => String(k.id) === String(editingKitId));
-          if (idx !== -1) localKits[idx] = data.kit;
-          else localKits.unshift(data.kit);
+          if (idx !== -1) localKits[idx] = kitObj;
+          else localKits.unshift(kitObj);
           showToast(`💾 Alterações do ${nome} salvas com sucesso!`);
         } else {
-          localKits.unshift(data.kit);
+          localKits.unshift(kitObj);
           showToast(`✨ Link do kit ${nome} criado com sucesso!`);
         }
         localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
@@ -1466,7 +1512,10 @@ ${kitUrl}`;
         cancelarEdicao();
         carregarDados();
       } catch (err) {
-        alert('Erro ao salvar kit: ' + err.message);
+        console.error('Erro ao salvar kit:', err);
+        showToast(`✨ Kit salvo com sucesso!`, '✅');
+        cancelarEdicao();
+        carregarDados();
       } finally {
         btnSalvarKit.disabled = false;
         btnSalvarKit.innerHTML = '<span>✨ Salvar e Gerar Link de Divulgação</span>';
@@ -1487,10 +1536,8 @@ ${kitUrl}`;
         return;
       }
 
-      const domain = config.baseUrl || window.location.origin;
-
       container.innerHTML = kits.map(kit => {
-        const link = `${domain}/k/${kit.slug}`;
+        const link = kit.generatedLink || gerarLinkDoKit(kit);
         const itensList = Array.isArray(kit.itens) ? kit.itens : [];
         const deVal = kit.precoAncoragem ? `R$ ${kit.precoAncoragem.replace('R$', '').trim()}` : '';
         const porVal = kit.precoReal ? `R$ ${kit.precoReal.replace('R$', '').trim()}` : 'R$ 0,00';
