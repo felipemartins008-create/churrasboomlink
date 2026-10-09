@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1",
+    "slug": "kit-churrasco-prime-familia",
+    "nome": "Kit Churrasco Prime Família (6 a 8 Pessoas)",
+    "precoAncoragem": "289,90",
+    "precoReal": "189,90",
+    "bannerUrl": "/assets/banner-churrasco-prime.jpg",
+    "descricao": "O kit mais pedido para o final de semana em família! Carnes nobres macias, acompanhamentos completos e entrega rápida.",
+    "itens": [
+      "1,2kg Picanha Bovina Angus Selecionada",
+      "1,0kg Fraldinha Grill Macia",
+      "1,0kg Linguiça Toscana Artesanal Suína",
+      "800g Coração de Frango Temperado Especial",
+      "1 Pacote Pão de Alho Tradicional Crocante (400g)",
+      "1 Pacote Queijo Coalho no Espeto (400g)",
+      "1 Pote Farofa Especial da Casa Crocante (400g)",
+      "1 Pacote Carvão Vegetal Selecionado 4kg"
+    ],
+    "whatsappMsg": "Olá ChurrasBoom! Vi a promoção e quero pedir o *Kit Churrasco Prime Família (6 a 8 Pessoas)* por *R$ 189,90*. Como faço para receber?"
+  },
+  {
+    "id": "2",
+    "slug": "kit-churrasco-amigos-resenha",
+    "nome": "Kit Churrasco Amigos & Resenha (10 a 12 Pessoas)",
+    "precoAncoragem": "420,00",
+    "precoReal": "279,90",
+    "bannerUrl": "/assets/banner-churrasco-prime.jpg",
+    "descricao": "Churrasco completo para a galera não passar vontade! Cortes selecionados com o melhor custo-benefício.",
+    "itens": [
+      "2,0kg Picanha Bovina Premium",
+      "1,5kg Costela Janela em Tiras",
+      "1,5kg Linguiça Cuiabana com Queijo",
+      "1,0kg Sobrecoxa Desossada e Marinada",
+      "2 Pacotes Pão de Alho Especial 400g",
+      "1 Pacote Queijo Coalho com Orégano 400g",
+      "1 Pote Farofa da Casa 500g + Chimichurri",
+      "2 Sacos de Carvão 4kg Especial"
+    ],
+    "whatsappMsg": "Olá ChurrasBoom! Tenho interesse no *Kit Churrasco Amigos & Resenha* por *R$ 279,90*. Poderia me passar a disponibilidade de entrega?"
+  },
+  {
+    "id": "3",
+    "slug": "kit-churrasco-casal-vip",
+    "nome": "Kit Churrasco Casal VIP (2 a 3 Pessoas)",
+    "precoAncoragem": "179,00",
+    "precoReal": "119,90",
+    "bannerUrl": "/assets/banner-churrasco-prime.jpg",
+    "descricao": "Para quem quer praticidade e corte de alta gastronomia para um almoço ou jantar a dois inesquecível.",
+    "itens": [
+      "800g Bife de Ancho / Chorizo Angus",
+      "500g Linguiça Artesanal com Provolone",
+      "500g Medalhão de Frango com Bacon",
+      "1 Pacote Pão de Alho Gourmet",
+      "1 Pacote Queijo Coalho no Espeto",
+      "1 Pote Farofa Artesanal 250g",
+      "1 Pote Sal de Parrilla Especial",
+      "1 Saco de Carvão 3kg Selecionado"
+    ],
+    "whatsappMsg": "Olá ChurrasBoom! Quero pedir o *Kit Churrasco Casal VIP* por *R$ 119,90*. Poderia me atender?"
+  }
+]

@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChurrasBoom | Gerador de Links de Divulgação WhatsApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0d13;
+      --card-bg: #141824;
+      --card-inner: #1c2233;
+      --primary: #f97316;
+      --primary-hover: #ea580c;
+      --fire: #ef4444;
+      --green-zap: #22c55e;
+      --green-zap-hover: #16a34a;
+      --border: #252e42;
+      --border-hover: #3b4763;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 30px 16px 60px;
+      line-height: 1.5;
+      background-image: radial-gradient(circle at 50% 0%, #201309 0%, #0b0d13 70%);
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .header-logo span.highlight {
+      color: var(--primary);
+    }
+
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(249, 115, 22, 0.15);
+      color: #fb923c;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 660px;
+      margin: 0 auto;
+    }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 960px) {
+      .grid-main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      color: #ffffff;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title span.title-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+
+    .label-hint {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: #0d121d;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    }
+
+    .price-inputs-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .economy-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px dashed rgba(34, 197, 94, 0.4);
+      color: #4ade80;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-top: -6px;
+      margin-bottom: 16px;
+    }
+
+    /* Itens Dinâmicos (Até 8 Itens) */
+    .items-container {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    .items-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .items-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .items-counter {
+      font-size: 11.5px;
+      font-weight: 800;
+      background: rgba(249, 115, 22, 0.2);
+      color: #fb923c;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .item-inputs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .item-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .item-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #0d121d;
+      border: 1px solid var(--border);
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-item {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      width: 32px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-item:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fff;
+    }
+
+    .items-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-add-item {
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px dashed rgba(249, 115, 22, 0.5);
+      color: #fb923c;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-add-item:hover:not(:disabled) {
+      background: rgba(249, 115, 22, 0.25);
+      border-color: #f97316;
+      color: #fff;
+    }
+
+    .btn-add-item:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-presets {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-presets:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* Upload Area */
+    .upload-container {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      background: #0d121d;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .upload-container:hover {
+      border-color: var(--primary);
+    }
+
+    .upload-icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .btn-choose-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1c2333;
+      color: #cbd5e1;
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-choose-file:hover {
+      background: #252e42;
+      color: #fff;
+    }
+
+    .upload-preview-thumb {
+      max-width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      text-decoration: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: #fff;
+      box-shadow: 0 8px 20px -5px rgba(249, 115, 22, 0.4);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #fff;
+      box-shadow: 0 8px 20px -5px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-success:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: #0d121d;
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+    }
+
+    .btn-outline:hover {
+      background: #1c2233;
+      color: #fff;
+      border-color: var(--border-hover);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 12px;
+      border-radius: 10px;
+    }
+
+    /* WhatsApp Simulator */
+    .simulator-container {
+      background: #0b141a;
+      border-radius: 20px;
+      border: 1px solid #1f2c34;
+      overflow: hidden;
+      box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
+    }
+
+    .sim-header {
+      background: #1f2c34;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #2a3942;
+    }
+
+    .sim-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #25d366;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .sim-header-info {
+      flex: 1;
+    }
+
+    .sim-header-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e9edef;
+    }
+
+    .sim-header-status {
+      font-size: 11px;
+      color: #8696a0;
+    }
+
+    .sim-chat-area {
+      padding: 16px 12px;
+      background-color: #0b141a;
+      background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 16px 16px;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .zap-bubble {
+      background: #005c4b;
+      color: #e9edef;
+      border-radius: 14px 14px 4px 14px;
+      padding: 8px;
+      max-width: 100%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    /* Open Graph Card inside WhatsApp */
+    .sim-og-card {
+      background: #025144;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sim-og-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+      background: #111b21;
+    }
+
+    .sim-og-meta {
+      padding: 10px 12px;
+    }
+
+    .sim-og-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .sim-og-desc {
+      font-size: 11.5px;
+      color: #8696a0;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .sim-og-link {
+      font-size: 11px;
+      color: #53bdeb;
+      word-break: break-all;
+    }
+
+    .sim-zap-message {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #e9edef;
+      white-space: pre-wrap;
+      padding: 4px 4px 6px;
+      word-break: break-word;
+    }
+
+    .sim-bubble-time {
+      font-size: 10px;
+      color: #8696a0;
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    /* Simulator Action Buttons */
+    .sim-actions {
+      padding: 14px 16px;
+      background: #111b21;
+      border-top: 1px solid #222d34;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Saved Kits Section */
+    .saved-kits-section {
+      margin-top: 20px;
+    }
+
+    .kits-list-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .kit-card-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kit-card-item:hover {
+      border-color: rgba(249, 115, 22, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.6);
+    }
+
+    .kit-item-img-wrap {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      background: #111;
+      overflow: hidden;
+    }
+
+    .kit-item-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .kit-item-badge-price {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(13, 18, 29, 0.9);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(249, 115, 22, 0.4);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .kit-item-body {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kit-item-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .kit-item-pricing {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kit-item-anchor {
+      font-size: 13px;
+      color: #94a3b8;
+      text-decoration: line-through;
+    }
+
+    .kit-item-real {
+      font-size: 20px;
+      font-weight: 900;
+      color: #34d399;
+    }
+
+    .kit-item-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+
+    .kit-item-tag {
+      background: var(--card-inner);
+      color: #cbd5e1;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .kit-item-actions {
+      margin-top: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid var(--primary);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Modal / Config Box */
+    .config-box {
+      margin-top: 30px;
+      background: #111622;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .config-left {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .config-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .config-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .config-inputs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .config-input-field {
+      width: 280px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <!-- Header -->
+    <header>
+      <div class="badge-top">🔥 Divulgador de WhatsApp • Alta Conversão</div>
+      <div class="header-logo">
+        🥩 <span>CHURRAS</span><span class="highlight">BOOM</span>
+      </div>
+      <h1>Gerador de Links de Kits de Churrasco</h1>
+      <p class="subtitle">
+        Crie, edite e personalize anúncios para WhatsApp com foto em alta resolução, lista com até 8 itens selecionados, preço de ancoragem e direcionamento direto para o WhatsApp da ChurrasBoom.
+      </p>
+    </header>
+
+    <!-- Main Grid: Form + WhatsApp Preview -->
+    <div class="grid-main">
+      
+      <!-- Left Column: Formulário de Cadastro / Edição -->
+      <div class="card" id="formCard">
+        <div class="card-title">
+          <span class="title-left">
+            <span id="formIcon">➕</span>
+            <span id="formTitle">Cadastrar Novo Kit Churrasco</span>
+          </span>
+          <button type="button" class="btn btn-outline btn-sm" id="btnCancelarEdicao" style="display: none;" onclick="cancelarEdicao()">
+            Cancelar Edição
+          </button>
+        </div>
+
+        <form id="kitForm">
+          <!-- Nome do Kit -->
+          <div class="form-group">
+            <label for="nome">Nome do Kit de Churrasco *</label>
+            <input type="text" id="nome" required placeholder="Ex: Kit Churrasco Prime Família (6 a 8 pessoas)" autocomplete="off">
+          </div>
+
+          <!-- Preços (Ancoragem + Real) -->
+          <div class="price-inputs-row">
+            <div class="form-group">
+              <label for="precoAncoragem">
+                Preço de Ancoragem (De R$) *
+                <span class="label-hint">(Valor cheio/riscado)</span>
+              </label>
+              <input type="text" id="precoAncoragem" required placeholder="Ex: 289,90" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+              <label for="precoReal">
+                Preço Promocional (Por R$) *
+                <span class="label-hint">(Valor final com desconto)</span>
+              </label>
+              <input type="text" id="precoReal" required placeholder="Ex: 189,90" autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Badge de Economia Calculada Automaticamente -->
+          <div class="economy-badge" id="economyBadge">
+            <span>💡</span> Digite os preços acima para calcular o valor de economia e desconto percebido.
+          </div>
+
+          <!-- Foto do Kit Churrasco -->
+          <div class="form-group">
+            <label>
+              Foto do Kit Churrasco *
+              <span class="label-hint">(Formato 1:1 Quadrado recomendado para WhatsApp)</span>
+            </label>
+            <div class="upload-container" id="uploadDropArea">
+              <div class="upload-icon">📸</div>
+              <p style="font-size: 13px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px;">
+                Clique para selecionar a foto do kit churrasco
+              </p>
+              <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+                Arquivos JPG, PNG ou WebP. A foto aparece automaticamente quando o link é enviado no WhatsApp!
+              </p>
+              <input type="file" id="imagemFileInput" class="file-input" accept="image/*">
+              <button type="button" class="btn-choose-file" onclick="document.getElementById('imagemFileInput').click()">
+                <span>📁 Escolher Arquivo</span>
+              </button>
+              <img id="uploadThumb" class="upload-preview-thumb" alt="Preview da Foto">
+              <p id="imageStatusDica" style="font-size: 11px; color: #fb923c; margin-top: 8px;">
+                ⭐ Usando foto premium padrão de churrasco da ChurrasBoom. Se quiser, escolha a sua própria acima!
+              </p>
+            </div>
+          </div>
+
+          <!-- Itens do Kit (Até 8 Itens) -->
+          <div class="items-container">
+            <div class="items-header">
+              <div class="items-title">
+                <span>🔪</span> Itens Inclusos no Kit
+                <span class="items-counter" id="itemsCountBadge">0 / 8 itens</span>
+              </div>
+            </div>
+
+            <div class="item-inputs-list" id="itemInputsList">
+              <!-- Gerado via JavaScript -->
+            </div>
+
+            <div class="items-actions">
+              <button type="button" class="btn-add-item" id="btnAddItem" onclick="adicionarItem()">
+                <span>➕</span> Adicionar Item
+              </button>
+              <button type="button" class="btn-presets" onclick="aplicarPreset('prime')">
+                🥩 Carregar Sugestão Prime (8 Itens)
+              </button>
+              <button type="button" class="btn-presets" onclick="aplicarPreset('economico')">
+                🔥 Sugestão Custo-Benefício
+              </button>
+            </div>
+          </div>
+
+          <!-- Descrição / Observação Adicional -->
+          <div class="form-group">
+            <label for="descricao">
+              Breve Descrição do Kit (Opcional)
+              <span class="label-hint">(Aparece na página de destino)</span>
+            </label>
+            <textarea id="descricao" rows="2" placeholder="Ex: Carnes selecionadas a vácuo, embalagem térmica e cortes macios para o churrasco perfeito."></textarea>
+          </div>
+
+          <!-- Botão Submeter -->
+          <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-primary" id="btnSalvarKit" style="flex: 1; padding: 14px;">
+              <span>✨ Salvar e Gerar Link de Divulgação</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right Column: Simulador em Tempo Real do WhatsApp -->
+      <div>
+        <div class="simulator-container">
+          <div class="sim-header">
+            <div class="sim-avatar">🥩</div>
+            <div class="sim-header-info">
+              <div class="sim-header-name">ChurrasBoom • Promoções</div>
+              <div class="sim-header-status">Simulação da Mensagem no WhatsApp</div>
+            </div>
+          </div>
+
+          <div class="sim-chat-area">
+            <div class="zap-bubble">
+              <!-- Open Graph Link Card -->
+              <div class="sim-og-card">
+                <img id="simOgImg" src="/assets/banner-churrasco-prime.jpg" alt="Preview Kit" class="sim-og-img">
+                <div class="sim-og-meta">
+                  <div class="sim-og-title" id="simOgTitle">🥩 Kit Churrasco Prime Família | ChurrasBoom</div>
+                  <div class="sim-og-desc" id="simOgDesc">🔥 DE R$ 289,90 POR APENAS R$ 189,90! Picanha Bovina Angus, Fraldinha Grill, Linguiça Toscana... Toque para pedir no WhatsApp!</div>
+                  <div class="sim-og-link" id="simOgLink">churrasboom.com/kit-churrasco</div>
+                </div>
+              </div>
+
+              <!-- Texto da Mensagem Formatado para WhatsApp -->
+              <div class="sim-zap-message" id="simZapMessage">
+<!-- O texto é atualizado em tempo real pelo JS -->
+              </div>
+
+              <div class="sim-bubble-time" id="simBubbleTime">17:00 ✓✓</div>
+            </div>
+          </div>
+
+          <!-- Ações Rápidas do Simulador -->
+          <div class="sim-actions">
+            <button type="button" class="btn btn-success" id="btnCopiarMensagem" onclick="copiarMensagemFormatada()">
+              <span>📋 Copiar Mensagem Pronta p/ WhatsApp</span>
+            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button type="button" class="btn btn-outline btn-sm" id="btnCopiarLink" onclick="copiarLinkAtual()">
+                <span>🔗 Copiar Link</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="btnTestarZap" onclick="testarWhatsAppDireto()">
+                <span>🚀 Testar no Zap</span>
+              </button>
+            </div>
+            <a href="#" target="_blank" id="btnVerLandingPage" class="btn btn-outline btn-sm" style="display: none;">
+              <span>👁️ Abrir Landing Page do Kit</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Lista de Kits Salvos -->
+    <div class="saved-kits-section">
+      <div class="card-title">
+        <span class="title-left">
+          <span>📋</span>
+          <span>Seus Kits de Churrasco Cadastrados</span>
+        </span>
+        <button type="button" class="btn btn-outline btn-sm" onclick="carregarDados()">
+          <span>🔄 Atualizar Lista</span>
+        </button>
+      </div>
+
+      <div class="kits-list-grid" id="kitsListContainer">
+        <!-- Preenchido via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Barra de Configurações de Domínio e WhatsApp -->
+    <div class="config-box">
+      <div class="config-left">
+        <div class="config-title">⚙️ Configurações da Loja</div>
+        <div class="config-desc">
+          WhatsApp de Atendimento: <strong>+55 11 91899-2002</strong> • Altere a URL Base caso publique em um domínio próprio ou Vercel.
+        </div>
+      </div>
+      <div class="config-inputs">
+        <input type="text" id="cfgBaseUrl" class="config-input-field" placeholder="http://localhost:3334 ou seudominio.com">
+        <button type="button" class="btn btn-outline btn-sm" onclick="salvarConfiguracoes()">
+          <span>💾 Salvar URL</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">Notificação</span>
+  </div>
+
+  <script>
+    // Estado Global
+    let kits = [];
+    let config = {
+      baseUrl: window.location.origin,
+      whatsappNumber: '5511918992002',
+      whatsappDisplay: '+55 11 91899-2002',
+      storeName: 'ChurrasBoom'
+    };
+
+    let editingKitId = null;
+    let editingBannerUrl = null;
+    let currentImageBase64 = null;
+    let generatedCurrentLink = '';
+
+    const DEFAULT_BANNER = '/assets/banner-churrasco-prime.jpg';
+
+    // Elementos do DOM
+    const form = document.getElementById('kitForm');
+    const formTitle = document.getElementById('formTitle');
+    const formIcon = document.getElementById('formIcon');
+    const btnSalvarKit = document.getElementById('btnSalvarKit');
+    const btnCancelarEdicao = document.getElementById('btnCancelarEdicao');
+    const itemInputsList = document.getElementById('itemInputsList');
+    const btnAddItem = document.getElementById('btnAddItem');
+    const itemsCountBadge = document.getElementById('itemsCountBadge');
+    const imagemFileInput = document.getElementById('imagemFileInput');
+    const uploadThumb = document.getElementById('uploadThumb');
+    const imageStatusDica = document.getElementById('imageStatusDica');
+    const economyBadge = document.getElementById('economyBadge');
+
+    // Elementos Simulador WhatsApp
+    const simOgImg = document.getElementById('simOgImg');
+    const simOgTitle = document.getElementById('simOgTitle');
+    const simOgDesc = document.getElementById('simOgDesc');
+    const simOgLink = document.getElementById('simOgLink');
+    const simZapMessage = document.getElementById('simZapMessage');
+    const btnVerLandingPage = document.getElementById('btnVerLandingPage');
+
+    // Toast helper
+    function showToast(msg, icon = '✅') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMessage').textContent = msg;
+      document.getElementById('toastIcon').textContent = icon;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    // Inicialização
+    async function carregarDados() {
+      try {
+        const res = await fetch('/api/kits');
+        const data = await res.json();
+        kits = data.kits || [];
+        if (data.config) {
+          config = data.config;
+          document.getElementById('cfgBaseUrl').value = config.baseUrl || window.location.origin;
+        }
+
+        // Recuperar possíveis kits do localStorage caso existam
+        const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+        if (localKits.length > 0 && kits.length === 0) {
+          kits = localKits;
+        }
+
+        renderKits();
+        atualizarSimulador();
+      } catch (err) {
+        console.warn('Erro ao carregar do servidor, usando fallback local:', err);
+        const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+        if (localKits.length > 0) kits = localKits;
+        renderKits();
+        atualizarSimulador();
+      }
+    }
+
+    // Gerenciamento de Itens Dinâmicos (Até 8 Itens)
+    function obterItensFormulario() {
+      const inputs = itemInputsList.querySelectorAll('.item-input-field');
+      const itens = [];
+      inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if (val) itens.push(val);
+      });
+      return itens;
+    }
+
+    function adicionarItem(valor = '') {
+      const currentRows = itemInputsList.querySelectorAll('.item-input-row');
+      if (currentRows.length >= 8) {
+        showToast('Limite máximo de 8 itens atingido!', '⚠️');
+        return;
+      }
+
+      const row = document.createElement('div');
+      row.className = 'item-input-row';
+      const num = currentRows.length + 1;
+
+      row.innerHTML = `
+        <div class="item-num">${num}</div>
+        <input type="text" class="item-input-field" placeholder="Ex: 1,2kg Picanha Bovina Angus" value="${escapeHtml(valor)}" oninput="atualizarSimulador()">
+        <button type="button" class="btn-remove-item" title="Remover item" onclick="removerItem(this)">✕</button>
+      `;
+
+      itemInputsList.appendChild(row);
+      atualizarContadorItens();
+      atualizarSimulador();
+    }
+
+    function removerItem(btn) {
+      const row = btn.closest('.item-input-row');
+      row.remove();
+      renumerarItens();
+      atualizarContadorItens();
+      atualizarSimulador();
+    }
+
+    function renumerarItens() {
+      const rows = itemInputsList.querySelectorAll('.item-input-row');
+      rows.forEach((r, idx) => {
+        r.querySelector('.item-num').textContent = idx + 1;
+      });
+    }
+
+    function atualizarContadorItens() {
+      const total = itemInputsList.querySelectorAll('.item-input-row').length;
+      itemsCountBadge.textContent = `${total} / 8 itens`;
+      btnAddItem.disabled = total >= 8;
+    }
+
+    function preencherItens(itensArray) {
+      itemInputsList.innerHTML = '';
+      if (Array.isArray(itensArray) && itensArray.length > 0) {
+        itensArray.slice(0, 8).forEach(item => {
+          adicionarItem(item);
+        });
+      } else {
+        // Inicializa com 4 campos em branco padrão
+        for (let i = 0; i < 4; i++) {
+          adicionarItem('');
+        }
+      }
+      atualizarContadorItens();
+    }
+
+    // Presets rápidos de churrasco
+    function aplicarPreset(tipo) {
+      if (tipo === 'prime') {
+        preencherItens([
+          '1,2kg Picanha Bovina Angus Selecionada',
+          '1,0kg Fraldinha Grill Macia',
+          '1,0kg Linguiça Toscana Artesanal Suína',
+          '800g Coração de Frango Temperado Especial',
+          '1 Pct Pão de Alho Tradicional Crocante (400g)',
+          '1 Pct Queijo Coalho no Espeto (400g)',
+          '1 Pote Farofa Especial da Casa Crocante (400g)',
+          '1 Pct Carvão Vegetal Selecionado 4kg'
+        ]);
+        if (!document.getElementById('nome').value) {
+          document.getElementById('nome').value = 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
+        }
+        if (!document.getElementById('precoAncoragem').value) {
+          document.getElementById('precoAncoragem').value = '289,90';
+        }
+        if (!document.getElementById('precoReal').value) {
+          document.getElementById('precoReal').value = '189,90';
+        }
+      } else if (tipo === 'economico') {
+        preencherItens([
+          '1,0kg Fraldinha / Alcatra Bovina Grill',
+          '1,0kg Linguiça Toscana Especial',
+          '1,0kg Sobrecoxa Desossada e Marinada',
+          '1 Pct Pão de Alho Tradicional 400g',
+          '1 Pct Queijo Coalho no Espeto 400g',
+          '1 Pote Farofa Crocante da Casa 350g',
+          '1 Saco de Carvão 4kg'
+        ]);
+        if (!document.getElementById('nome').value) {
+          document.getElementById('nome').value = 'Kit Churrasco Econômico Amigos (4 a 6 Pessoas)';
+        }
+        if (!document.getElementById('precoAncoragem').value) {
+          document.getElementById('precoAncoragem').value = '210,00';
+        }
+        if (!document.getElementById('precoReal').value) {
+          document.getElementById('precoReal').value = '149,90';
+        }
+      }
+      calcularEconomia();
+      atualizarSimulador();
+      showToast('Sugestão de kit carregada com sucesso!', '🔥');
+    }
+
+    // Cálculo de Economia
+    function calcularEconomia() {
+      const deStr = document.getElementById('precoAncoragem').value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+      const porStr = document.getElementById('precoReal').value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+
+      const deNum = parseFloat(deStr);
+      const porNum = parseFloat(porStr);
+
+      if (!isNaN(deNum) && !isNaN(porNum) && deNum > porNum) {
+        const eco = deNum - porNum;
+        const perc = Math.round((eco / deNum) * 100);
+        economyBadge.innerHTML = `
+          <span>🔥</span> Economia de <strong>R$ ${eco.toFixed(2).replace('.', ',')}</strong> para o cliente (${perc}% de desconto promocional!)
+        `;
+        economyBadge.style.color = '#34d399';
+        economyBadge.style.borderColor = 'rgba(52, 211, 153, 0.4)';
+        return { economia: eco.toFixed(2).replace('.', ','), perc };
+      } else {
+        economyBadge.innerHTML = `<span>💡</span> Digite os preços acima para calcular o valor de economia e desconto percebido.`;
+        economyBadge.style.color = '#fb923c';
+        economyBadge.style.borderColor = 'rgba(249, 115, 22, 0.4)';
+        return null;
+      }
+    }
+
+    // Manipulação de Upload de Imagem
+    imagemFileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        currentImageBase64 = evt.target.result;
+        uploadThumb.src = currentImageBase64;
+        uploadThumb.style.display = 'inline-block';
+        imageStatusDica.innerHTML = `✅ <strong>Foto personalizada selecionada!</strong> Tamanho ideal para visualização no WhatsApp.`;
+        simOgImg.src = currentImageBase64;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Atualização em Tempo Real do Simulador WhatsApp
+    function atualizarSimulador() {
+      const nome = document.getElementById('nome').value.trim() || 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
+      const precoDe = document.getElementById('precoAncoragem').value.trim() || '289,90';
+      const precoPor = document.getElementById('precoReal').value.trim() || '189,90';
+      const itens = obterItensFormulario();
+      const desc = document.getElementById('descricao').value.trim();
+
+      const econInfo = calcularEconomia();
+
+      const domain = config.baseUrl || window.location.origin;
+      const slug = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const kitUrl = `${domain}/k/${slug}`;
+      generatedCurrentLink = kitUrl;
+
+      // Imagem Preview
+      if (currentImageBase64) {
+        simOgImg.src = currentImageBase64;
+      } else if (editingBannerUrl) {
+        simOgImg.src = editingBannerUrl;
+      } else {
+        simOgImg.src = DEFAULT_BANNER;
+      }
+
+      // Open Graph Box
+      simOgTitle.textContent = `🥩 ${nome} | ChurrasBoom`;
+      const itensResumo = itens.slice(0, 3).join(', ');
+      simOgDesc.textContent = `🔥 DE R$ ${precoDe} POR APENAS R$ ${precoPor}! ${itensResumo ? itensResumo + '...' : ''} Clique para pedir no WhatsApp!`;
+      simOgLink.textContent = kitUrl.replace(/^https?:\/\//, '');
+
+      // Emojis e Lista de Itens no Texto
+      const emojisNumeros = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+      let itensText = '';
+      if (itens.length > 0) {
+        itensText = itens.map((it, idx) => `${emojisNumeros[idx] || '🔹'} ${it}`).join('\n');
+      } else {
+        itensText = '1️⃣ 1,2kg Picanha Bovina Angus Selecionada\n2️⃣ 1,0kg Fraldinha Grill Macia\n3️⃣ 1,0kg Linguiça Toscana Artesanal\n4️⃣ 1 Pct Pão de Alho Especial\n5️⃣ 1 Pote Farofa Crocante da Casa';
+      }
+
+      // Link do WhatsApp com mensagem de interesse no kit
+      const zapMsgPadrao = `Olá ChurrasBoom! Vi a promoção e quero pedir o *${nome}* por *R$ ${precoPor}*. Como faço para receber?`;
+      const zapLinkDireto = `https://wa.me/${config.whatsappNumber || '5511918992002'}?text=${encodeURIComponent(zapMsgPadrao)}`;
+
+      // Texto completo para WhatsApp
+      const textoZap = `🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+
+*${nome}*
+${desc ? '_' + desc + '_\n' : ''}
+📦 *O que vem no kit:*
+${itensText}
+
+❌ De: ~R$ ${precoDe}~
+🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)
+${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
+
+📲 *Peça agora direto pelo nosso WhatsApp:*
+${zapLinkDireto}
+
+🔗 *Veja a foto oficial e detalhes do kit:*
+${kitUrl}`;
+
+      simZapMessage.textContent = textoZap;
+
+      // Hora atual no simulador
+      const now = new Date();
+      const horas = String(now.getHours()).padStart(2, '0');
+      const minutos = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('simBubbleTime').textContent = `${horas}:${minutos} ✓✓`;
+
+      btnVerLandingPage.href = kitUrl;
+      btnVerLandingPage.style.display = 'inline-flex';
+    }
+
+    // Ouvintes nos inputs para tempo real
+    document.getElementById('nome').addEventListener('input', atualizarSimulador);
+    document.getElementById('precoAncoragem').addEventListener('input', () => {
+      calcularEconomia();
+      atualizarSimulador();
+    });
+    document.getElementById('precoReal').addEventListener('input', () => {
+      calcularEconomia();
+      atualizarSimulador();
+    });
+    document.getElementById('descricao').addEventListener('input', atualizarSimulador);
+
+    // Salvar Kit (Novo ou Edição)
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value.trim();
+      const precoAncoragem = document.getElementById('precoAncoragem').value.trim();
+      const precoReal = document.getElementById('precoReal').value.trim();
+      const descricao = document.getElementById('descricao').value.trim();
+      const itens = obterItensFormulario();
+
+      if (itens.length === 0) {
+        showToast('Por favor, adicione pelo menos 1 item ao kit!', '⚠️');
+        return;
+      }
+
+      btnSalvarKit.disabled = true;
+      btnSalvarKit.innerHTML = '<span>⏳ Salvando kit e foto...</span>';
+
+      try {
+        let finalBannerUrl = editingBannerUrl || DEFAULT_BANNER;
+
+        // Se o usuário fez upload de imagem
+        if (currentImageBase64) {
+          const upRes = await fetch('/api/upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: currentImageBase64 })
+          });
+          const upData = await upRes.json();
+          if (upData.success && upData.url) {
+            finalBannerUrl = upData.url;
+          }
+        }
+
+        const payload = {
+          id: editingKitId,
+          nome,
+          precoAncoragem,
+          precoReal,
+          bannerUrl: finalBannerUrl,
+          itens,
+          descricao,
+          whatsappMsg: `Olá ChurrasBoom! Tenho interesse no *${nome}* por *R$ ${precoReal}*. Como posso pedir?`
+        };
+
+        const res = await fetch('/api/kits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Falha ao salvar kit');
+        }
+
+        // Salvar também em localStorage para redundância
+        let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+        if (editingKitId) {
+          const idx = localKits.findIndex(k => String(k.id) === String(editingKitId));
+          if (idx !== -1) localKits[idx] = data.kit;
+          else localKits.unshift(data.kit);
+          showToast(`💾 Alterações do ${nome} salvas com sucesso!`);
+        } else {
+          localKits.unshift(data.kit);
+          showToast(`✨ Link do kit ${nome} criado com sucesso!`);
+        }
+        localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
+
+        cancelarEdicao();
+        carregarDados();
+      } catch (err) {
+        alert('Erro ao salvar kit: ' + err.message);
+      } finally {
+        btnSalvarKit.disabled = false;
+        btnSalvarKit.innerHTML = '<span>✨ Salvar e Gerar Link de Divulgação</span>';
+      }
+    });
+
+    // Renderizar Lista de Kits
+    function renderKits() {
+      const container = document.getElementById('kitsListContainer');
+      if (!kits || kits.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: var(--card-bg); border-radius: 20px; border: 1px dashed var(--border);">
+            <div style="font-size: 36px; margin-bottom: 10px;">🥩</div>
+            <h3 style="font-size: 18px; margin-bottom: 6px;">Nenhum kit cadastrado ainda</h3>
+            <p style="color: var(--text-muted); font-size: 13.5px;">Preencha o formulário acima ou use os botões de sugestão para criar seu primeiro kit!</p>
+          </div>
+        `;
+        return;
+      }
+
+      const domain = config.baseUrl || window.location.origin;
+
+      container.innerHTML = kits.map(kit => {
+        const link = `${domain}/k/${kit.slug}`;
+        const itensList = Array.isArray(kit.itens) ? kit.itens : [];
+        const deVal = kit.precoAncoragem ? `R$ ${kit.precoAncoragem.replace('R$', '').trim()}` : '';
+        const porVal = kit.precoReal ? `R$ ${kit.precoReal.replace('R$', '').trim()}` : 'R$ 0,00';
+
+        return `
+          <div class="kit-card-item">
+            <div class="kit-item-img-wrap">
+              <img src="${kit.bannerUrl || DEFAULT_BANNER}" alt="${escapeHtml(kit.nome)}" class="kit-item-img" onerror="this.src='${DEFAULT_BANNER}'">
+              <div class="kit-item-badge-price">${porVal}</div>
+            </div>
+            <div class="kit-item-body">
+              <div class="kit-item-title">${escapeHtml(kit.nome)}</div>
+              <div class="kit-item-pricing">
+                ${deVal ? `<span class="kit-item-anchor">${deVal}</span>` : ''}
+                <span class="kit-item-real">${porVal}</span>
+              </div>
+              <div class="kit-item-tags">
+                <span class="kit-item-tag">📦 ${itensList.length} itens</span>
+                <span class="kit-item-tag">🔥 WhatsApp Pronto</span>
+              </div>
+              <div class="kit-item-actions">
+                <button type="button" class="btn btn-primary btn-sm" onclick="editarKit('${kit.id}')" title="Editar">
+                  ✏️ Editar
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="copiarLinkKit('${link}')" title="Copiar Link">
+                  🔗 Link
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="duplicarKit('${kit.id}')" title="Duplicar">
+                  📑 Duplicar
+                </button>
+                <a href="${link}" target="_blank" class="btn btn-outline btn-sm" title="Ver Página">
+                  👁️ Ver
+                </a>
+                <button type="button" class="btn btn-danger btn-sm" onclick="excluirKit('${kit.id}', '${escapeHtml(kit.nome)}')" title="Excluir" style="margin-left: auto;">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Editar Kit
+    window.editarKit = function(id) {
+      const kit = kits.find(k => String(k.id) === String(id));
+      if (!kit) return;
+
+      editingKitId = String(kit.id);
+      editingBannerUrl = kit.bannerUrl || null;
+      currentImageBase64 = null;
+
+      document.getElementById('nome').value = kit.nome || '';
+      document.getElementById('precoAncoragem').value = kit.precoAncoragem || '';
+      document.getElementById('precoReal').value = kit.precoReal || '';
+      document.getElementById('descricao').value = kit.descricao || '';
+      imagemFileInput.value = '';
+
+      if (editingBannerUrl) {
+        uploadThumb.src = editingBannerUrl;
+        uploadThumb.style.display = 'inline-block';
+        imageStatusDica.innerHTML = `🖼️ <strong>Foto atual mantida!</strong> Se desejar trocar a foto, selecione um novo arquivo acima.`;
+      }
+
+      preencherItens(kit.itens || []);
+      calcularEconomia();
+      atualizarSimulador();
+
+      formTitle.textContent = `Editando: ${kit.nome}`;
+      formIcon.textContent = '✏️';
+      btnSalvarKit.innerHTML = '<span>💾 Salvar Alterações do Kit</span>';
+      btnCancelarEdicao.style.display = 'inline-flex';
+
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('nome').focus();
+    };
+
+    // Cancelar Edição
+    window.cancelarEdicao = function() {
+      editingKitId = null;
+      editingBannerUrl = null;
+      currentImageBase64 = null;
+
+      form.reset();
+      uploadThumb.style.display = 'none';
+      uploadThumb.src = '';
+      imageStatusDica.innerHTML = `⭐ Usando foto premium padrão de churrasco da ChurrasBoom. Se quiser, escolha a sua própria acima!`;
+
+      formTitle.textContent = 'Cadastrar Novo Kit Churrasco';
+      formIcon.textContent = '➕';
+      btnSalvarKit.innerHTML = '<span>✨ Salvar e Gerar Link de Divulgação</span>';
+      btnCancelarEdicao.style.display = 'none';
+
+      preencherItens([]);
+      calcularEconomia();
+      atualizarSimulador();
+    };
+
+    // Duplicar Kit
+    window.duplicarKit = function(id) {
+      const kit = kits.find(k => String(k.id) === String(id));
+      if (!kit) return;
+
+      cancelarEdicao();
+      document.getElementById('nome').value = `${kit.nome} (Cópia)`;
+      document.getElementById('precoAncoragem').value = kit.precoAncoragem || '';
+      document.getElementById('precoReal').value = kit.precoReal || '';
+      document.getElementById('descricao').value = kit.descricao || '';
+      editingBannerUrl = kit.bannerUrl || null;
+
+      if (editingBannerUrl) {
+        uploadThumb.src = editingBannerUrl;
+        uploadThumb.style.display = 'inline-block';
+      }
+
+      preencherItens(kit.itens || []);
+      calcularEconomia();
+      atualizarSimulador();
+
+      showToast(`Kit duplicado no formulário! Faça suas alterações e clique em salvar.`, '📑');
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // Excluir Kit
+    window.excluirKit = async function(id, nome) {
+      if (!confirm(`Deseja realmente excluir o kit "${nome}"?`)) return;
+
+      try {
+        await fetch(`/api/kits/${id}`, { method: 'DELETE' });
+      } catch (e) {}
+
+      kits = kits.filter(k => String(k.id) !== String(id));
+      localStorage.setItem('churrasboom_kits', JSON.stringify(kits));
+
+      showToast(`Kit "${nome}" removido!`, '🗑️');
+      renderKits();
+      if (editingKitId === String(id)) cancelarEdicao();
+    };
+
+    // Copiar Texto Formatado para WhatsApp
+    window.copiarMensagemFormatada = function() {
+      const text = simZapMessage.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Mensagem completa copiada para a área de transferência!', '📋');
+      }).catch(() => {
+        prompt('Copie a mensagem abaixo:', text);
+      });
+    };
+
+    // Copiar Link Atual
+    window.copiarLinkAtual = function() {
+      const link = generatedCurrentLink;
+      navigator.clipboard.writeText(link).then(() => {
+        showToast('Link do kit copiado!', '🔗');
+      }).catch(() => {
+        prompt('Copie o link:', link);
+      });
+    };
+
+    window.copiarLinkKit = function(link) {
+      navigator.clipboard.writeText(link).then(() => {
+        showToast('Link copiado com sucesso!', '🔗');
+      }).catch(() => {
+        prompt('Copie o link:', link);
+      });
+    };
+
+    // Testar no WhatsApp Direto
+    window.testarWhatsAppDireto = function() {
+      const text = simZapMessage.textContent;
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    };
+
+    // Salvar Configurações de Domínio
+    window.salvarConfiguracoes = async function() {
+      const baseUrl = document.getElementById('cfgBaseUrl').value.trim();
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl })
+        });
+        const data = await res.json();
+        if (data.success) {
+          config = data.config;
+          showToast('Endereço salvo com sucesso! Os links agora usarão esta URL.', '💾');
+          renderKits();
+          atualizarSimulador();
+        }
+      } catch (err) {
+        showToast('Erro ao salvar configurações', '❌');
+      }
+    };
+
+    function escapeHtml(string) {
+      if (!string) return '';
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Inicialização ao carregar página
+    window.addEventListener('DOMContentLoaded', () => {
+      preencherItens([
+        '1,2kg Picanha Bovina Angus Selecionada',
+        '1,0kg Fraldinha Grill Macia',
+        '1,0kg Linguiça Toscana Artesanal Suína',
+        '800g Coração de Frango Temperado Especial',
+        '1 Pct Pão de Alho Tradicional Crocante (400g)',
+        '1 Pct Queijo Coalho no Espeto (400g)',
+        '1 Pote Farofa Especial da Casa Crocante (400g)',
+        '1 Pct Carvão Vegetal Selecionado 4kg'
+      ]);
+      document.getElementById('nome').value = 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
+      document.getElementById('precoAncoragem').value = '289,90';
+      document.getElementById('precoReal').value = '189,90';
+      document.getElementById('descricao').value = 'O kit mais pedido para o seu churrasco perfeito! Carnes nobres macias, acompanhamentos e entrega rápida.';
+      
+      carregarDados();
+    });
+  </script>
+</body>
+</html>

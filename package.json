@@ -1,0 +1,22 @@
+{
+  "name": "churrasboom-links-divulgacao",
+  "version": "1.0.0",
+  "description": "Gerador de links de divulgação no WhatsApp para kits de churrasco da ChurrasBoom",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "churrasco",
+    "whatsapp",
+    "divulgacao",
+    "churrasboom",
+    "opengraph"
+  ],
+  "author": "ChurrasBoom",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}
