@@ -1087,6 +1087,7 @@
       }
 
       const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+      const deletedIds = JSON.parse(localStorage.getItem('churras_deleted_ids') || '[]');
 
       // Mescla kits locais criados no navegador com kits do servidor
       const mergedMap = new Map();
@@ -1097,7 +1098,8 @@
         }
       });
 
-      kits = Array.from(mergedMap.values());
+      // Filtra estritamente os kits que o usuário excluiu
+      kits = Array.from(mergedMap.values()).filter(k => !deletedIds.includes(String(k.id)));
 
       const domain = getActiveDomain();
       document.getElementById('cfgBaseUrl').value = domain;
@@ -1712,14 +1714,26 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
     window.excluirKit = async function(id, nome) {
       if (!confirm(`Deseja realmente excluir o kit "${nome}"?`)) return;
 
+      // 1. Remove da lista de kits locais
+      let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
+      localKits = localKits.filter(k => String(k.id) !== String(id));
+      localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
+
+      // 2. Salva na lista permanente de IDs excluídos (para NUNCA mais voltar do servidor)
+      let deletedIds = JSON.parse(localStorage.getItem('churras_deleted_ids') || '[]');
+      if (!deletedIds.includes(String(id))) {
+        deletedIds.push(String(id));
+        localStorage.setItem('churras_deleted_ids', JSON.stringify(deletedIds));
+      }
+
+      // 3. Tenta deletar no backend (para ambiente localhost)
       try {
         await fetch(`/api/kits/${id}`, { method: 'DELETE' });
       } catch (e) {}
 
       kits = kits.filter(k => String(k.id) !== String(id));
-      localStorage.setItem('churrasboom_kits', JSON.stringify(kits));
 
-      showToast(`Kit "${nome}" removido!`, '🗑️');
+      showToast(`Kit "${nome}" removido permanentemente!`, '🗑️');
       renderKits();
       if (editingKitId === String(id)) cancelarEdicao();
     };
