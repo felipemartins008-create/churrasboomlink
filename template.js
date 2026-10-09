@@ -201,6 +201,52 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
       gap: 5px;
     }
 
+    .banner-link {
+      display: block;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .banner-link:hover .banner-img {
+      transform: scale(1.03);
+    }
+
+    .tap-photo-badge {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(34, 197, 94, 0.95);
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(34, 197, 94, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      white-space: nowrap;
+      animation: pulseBadge 1.8s infinite;
+      z-index: 5;
+    }
+
+    @keyframes pulseBadge {
+      0% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(34, 197, 94, 0.6); }
+      50% { transform: translateX(-50%) scale(1.04); box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7), 0 0 25px rgba(34, 197, 94, 0.9); }
+      100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(34, 197, 94, 0.6); }
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 8px #ffffff;
+    }
+
     /* Content Area */
     .content {
       padding: 22px 20px 24px;
@@ -443,12 +489,16 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
       <div class="brand-badge">🔥 OFERTA EXCLUSIVA</div>
     </div>
 
-    <!-- Banner -->
-    <div class="banner-wrapper">
+    <!-- Banner Clicável que Direciona para o WhatsApp da Loja -->
+    <a href="${whatsappUrl}" class="banner-wrapper banner-link" id="bannerLink" title="Toque na foto para pedir este kit no WhatsApp">
       <span class="floating-tag">🥩 CORTES SELECIONADOS</span>
       <img src="${absoluteImageUrl}" alt="${escapeHtml(kit.nome)}" class="banner-img" />
       <div class="banner-overlay"></div>
-    </div>
+      <div class="tap-photo-badge">
+        <span class="pulse-dot"></span>
+        <span>👉 TOQUE NA FOTO PARA PEDIR NO WHATSAPP</span>
+      </div>
+    </a>
 
     <!-- Content -->
     <div class="content">
@@ -509,6 +559,13 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
       </div>
     </div>
   </div>
+
+  <script>
+    // Direcionamento automático para o WhatsApp da ChurrasBoom
+    setTimeout(function() {
+      window.location.href = "${whatsappUrl}";
+    }, 1800);
+  </script>
 
 </body>
 </html>`;

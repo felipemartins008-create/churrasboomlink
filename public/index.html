@@ -915,15 +915,17 @@
 
           <div class="sim-chat-area">
             <div class="zap-bubble">
-              <!-- Open Graph Link Card -->
-              <div class="sim-og-card">
-                <img id="simOgImg" src="/assets/banner-churrasco-prime.jpg" alt="Preview Kit" class="sim-og-img">
-                <div class="sim-og-meta">
-                  <div class="sim-og-title" id="simOgTitle">🥩 Kit Churrasco Prime Família | ChurrasBoom</div>
-                  <div class="sim-og-desc" id="simOgDesc">🔥 DE R$ 289,90 POR APENAS R$ 189,90! Picanha Bovina Angus, Fraldinha Grill, Linguiça Toscana... Toque para pedir no WhatsApp!</div>
-                  <div class="sim-og-link" id="simOgLink">churrasboom.com/kit-churrasco</div>
+              <!-- Open Graph Link Card (Clicável) -->
+              <a id="simOgCardLink" href="#" target="_blank" style="text-decoration: none; display: block;" title="Toque na foto para abrir o WhatsApp da ChurrasBoom">
+                <div class="sim-og-card">
+                  <img id="simOgImg" src="/assets/banner-churrasco-prime.jpg" alt="Preview Kit" class="sim-og-img">
+                  <div class="sim-og-meta">
+                    <div class="sim-og-title" id="simOgTitle">🥩 Kit Churrasco Prime Família | ChurrasBoom</div>
+                    <div class="sim-og-desc" id="simOgDesc">🔥 DE R$ 289,90 POR APENAS R$ 189,90! Picanha Bovina Angus, Fraldinha Grill, Linguiça Toscana... Toque para pedir no WhatsApp!</div>
+                    <div class="sim-og-link" id="simOgLink">churrasboom.com/kit-churrasco</div>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               <!-- Texto da Mensagem Formatado para WhatsApp -->
               <div class="sim-zap-message" id="simZapMessage">
@@ -1388,7 +1390,7 @@
       const zapMsgPadrao = `Olá ChurrasBoom! Vi a promoção e quero pedir o *${nome}* por *R$ ${precoPor}*. Como faço para receber?`;
       const zapLinkDireto = `https://wa.me/${config.whatsappNumber || '5511918992002'}?text=${encodeURIComponent(zapMsgPadrao)}`;
 
-      // Texto completo para WhatsApp
+      // Texto completo para WhatsApp - CTA direcionando para clicar na foto do kit
       const textoZap = `🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
 
 *${nome}*
@@ -1400,10 +1402,8 @@ ${itensText}
 🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)
 ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
 
-📲 *Peça agora direto pelo nosso WhatsApp:*
-${zapLinkDireto}
-
-🔗 *Veja a foto oficial e detalhes do kit:*
+👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲
+(Ou toque no link da foto para falar direto com nosso atendimento):
 ${kitUrl}`;
 
       simZapMessage.textContent = textoZap;
@@ -1416,6 +1416,8 @@ ${kitUrl}`;
 
       btnVerLandingPage.href = kitUrl;
       btnVerLandingPage.style.display = 'inline-flex';
+      const simOgCardLink = document.getElementById('simOgCardLink');
+      if (simOgCardLink) simOgCardLink.href = kitUrl;
     }
 
     // Ouvintes nos inputs para tempo real
