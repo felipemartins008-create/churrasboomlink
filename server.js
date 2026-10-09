@@ -102,34 +102,27 @@ function generateSlug(text) {
     .replace(/^-+|-+$/g, '');
 }
 
-// Upload para Imgur com múltiplos client IDs e fallback resiliente
+// Upload para Catbox CDN com suporte global e scrapers de WhatsApp
 async function uploadToCloud(buffer) {
-  const base64Data = buffer.toString('base64');
-  const clientIds = [
-    '546c25a59c58ad7',
-    'e1ff1b53c613e51',
-    '28eb2e1f1634699',
-    'c9cf932c0d83296',
-    '9b6c08523c914b4'
-  ];
+  try {
+    const blob = new Blob([buffer], { type: 'image/jpeg' });
+    const formData = new FormData();
+    formData.append('reqtype', 'fileupload');
+    formData.append('fileToUpload', blob, 'kit.jpg');
 
-  for (const clientId of clientIds) {
-    try {
-      const res = await fetch('https://api.imgur.com/3/image', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Client-ID ${clientId}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: base64Data, type: 'base64' })
-      });
-      const json = await res.json();
-      if (json.success && json.data?.link) {
-        return json.data.link.replace('http://', 'https://');
+    const res = await fetch('https://catbox.moe/user/api.php', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith('http')) {
+        return text.trim();
       }
-    } catch (err) {
-      console.warn(`Imgur ${clientId} falhou:`, err.message);
     }
+  } catch (err) {
+    console.warn('Catbox upload falhou:', err.message);
   }
 
   return null;
@@ -172,27 +165,25 @@ app.post('/api/upload-image', async (req, res) => {
       : imageBase64;
     const buffer = Buffer.from(base64Data, 'base64');
 
-    // 1. Tenta salvar localmente se o disco for gravável (desenvolvimento local)
+    // 1. Upload permanente na nuvem (Catbox) para que o WhatsApp acerte a foto
+    let cloudUrl = null;
+    try {
+      cloudUrl = await uploadToCloud(buffer);
+    } catch (e) {
+      console.warn('Upload em nuvem falhou:', e.message);
+    }
+
+    // 2. Tenta salvar localmente se for localhost
     let localUrl = null;
     try {
       const uploadsDir = path.join(__dirname, 'public', 'uploads');
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
-      const fileName = `kit-${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+      const fileName = `kit-${Date.now()}.jpg`;
       fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
       localUrl = `/uploads/${fileName}`;
-    } catch (e) {
-      // Ignora erro de read-only na Vercel
-    }
-
-    // 2. Tenta upload em nuvem pública (Imgur) para scrapers de WhatsApp
-    let cloudUrl = null;
-    try {
-      cloudUrl = await uploadToCloud(buffer);
-    } catch (e) {
-      console.warn('Upload em nuvem Imgur falhou:', e.message);
-    }
+    } catch (e) {}
 
     const finalUrl = cloudUrl || localUrl || '/assets/banner-churrasco-prime.jpg';
 
@@ -388,6 +379,18 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
       descricao: 'Kit completo para seu churrasco perfeito com carnes nobres e acompanhamentos da melhor qualidade.',
       whatsappMsg: `Olá ChurrasBoom! Quero pedir o *${nomeAmigavel}*. Como faço para receber?`
     };
+  } else {
+    kit = { ...kit };
+  }
+
+  // Se houver imagem personalizada na URL (?i=1l8966.jpg ou ?i=https://...)
+  const customImg = req.query.i || req.query.img;
+  if (customImg) {
+    if (customImg.startsWith('http')) {
+      kit.bannerUrl = customImg;
+    } else {
+      kit.bannerUrl = `https://files.catbox.moe/${customImg}`;
+    }
   }
 
   const config = getConfig(req);

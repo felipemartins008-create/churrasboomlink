@@ -1060,7 +1060,16 @@
     function gerarLinkDoKit(kit) {
       const domain = getActiveDomain();
       const slug = (kit.slug || kit.nome || 'kit-churrasco').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      return `${domain}/k/${slug}`;
+
+      let imgParam = '';
+      if (kit.bannerUrl && kit.bannerUrl.includes('catbox.moe/')) {
+        const fileId = kit.bannerUrl.split('/').pop();
+        imgParam = `?i=${fileId}`;
+      } else if (kit.bannerUrl && kit.bannerUrl.startsWith('http') && !kit.bannerUrl.includes('banner-churrasco')) {
+        imgParam = `?i=${encodeURIComponent(kit.bannerUrl)}`;
+      }
+
+      return `${domain}/k/${slug}${imgParam}`;
     }
 
     // Inicialização
@@ -1302,31 +1311,78 @@
       });
     }
 
-    // Manipulação de Upload com Compactação Automática para WhatsApp
+    // Upload de Imagem para a Nuvem com dupla contingência (Backend + Frontend Direct)
+    async function uploadImageToCloudDirect(base64Data) {
+      // 1. Tenta via backend
+      try {
+        const upRes = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64Data })
+        });
+        const upData = await upRes.json();
+        if (upData.success && upData.url && upData.url.startsWith('http') && !upData.url.includes('banner-churrasco')) {
+          return upData.url;
+        }
+      } catch (e) {
+        console.warn('Upload via backend falhou, tentando direto:', e);
+      }
+
+      // 2. Fallback direto pelo navegador para Catbox CDN
+      try {
+        const res = await fetch(base64Data);
+        const blob = await res.blob();
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', blob, 'kit.jpg');
+
+        const catRes = await fetch('https://catbox.moe/user/api.php', {
+          method: 'POST',
+          body: formData
+        });
+        if (catRes.ok) {
+          const text = await catRes.text();
+          if (text.startsWith('http')) {
+            return text.trim();
+          }
+        }
+      } catch (err) {
+        console.warn('Upload direto para Catbox falhou:', err);
+      }
+
+      return null;
+    }
+
+    // Manipulação de Upload com Compactação Automática e Upload Imediato para Nuvem
     imagemFileInput.addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
 
-      imageStatusDica.innerHTML = `⏳ <strong>Otimizando imagem para o WhatsApp...</strong>`;
+      imageStatusDica.innerHTML = `⏳ <strong>Compactando e enviando foto para a nuvem do WhatsApp...</strong>`;
 
       try {
         const result = await compactarImagemParaWhatsApp(file);
         currentImageBase64 = result.base64;
         uploadThumb.src = currentImageBase64;
         uploadThumb.style.display = 'inline-block';
-        
-        const reducao = Math.round((1 - (result.compressedKB / result.originalKB)) * 100);
-        const economiaTexto = result.originalKB > result.compressedKB ? `(${reducao}% de redução)` : '';
-
-        imageStatusDica.innerHTML = `⚡ <strong>Foto compactada automaticamente para o WhatsApp!</strong><br>` +
-          `Tamanho: ${result.originalKB} KB ➔ <strong>${result.compressedKB} KB</strong> ${economiaTexto} • 800x800 px.<br>` +
-          `✅ <em>100% no padrão para carregar automaticamente no balão do WhatsApp!</em>`;
-        imageStatusDica.style.color = '#34d399';
-
         simOgImg.src = currentImageBase64;
-        showToast(`Foto otimizada para o WhatsApp (${result.compressedKB} KB)`, '⚡');
+
+        // Upload imediato para a nuvem permanente
+        const cloudUrl = await uploadImageToCloudDirect(result.base64);
+        if (cloudUrl) {
+          editingBannerUrl = cloudUrl;
+          imageStatusDica.innerHTML = `⚡ <strong>Foto salva na nuvem com sucesso!</strong><br>` +
+            `Tamanho: ${result.originalKB} KB ➔ <strong>${result.compressedKB} KB</strong> (800x800 px).<br>` +
+            `✅ <em>Link da foto pronto para carregar no WhatsApp!</em>`;
+          imageStatusDica.style.color = '#34d399';
+          showToast(`Foto do kit enviada com sucesso!`, '📸');
+        } else {
+          imageStatusDica.innerHTML = `✅ Foto compactada localmente (${result.compressedKB} KB). Será salva ao enviar.`;
+        }
+
+        atualizarSimulador();
       } catch (err) {
-        console.error('Erro na compactação:', err);
+        console.error('Erro no processamento da foto:', err);
         imageStatusDica.innerHTML = `⚠️ Erro ao otimizar foto: ${err.message}`;
       }
     });
@@ -1343,9 +1399,7 @@
       const domain = getActiveDomain();
 
       let bannerParaLink = DEFAULT_BANNER;
-      if (currentImageBase64 && !currentImageBase64.startsWith('data:')) {
-        bannerParaLink = currentImageBase64;
-      } else if (editingBannerUrl) {
+      if (editingBannerUrl && editingBannerUrl.startsWith('http')) {
         bannerParaLink = editingBannerUrl;
       }
 
@@ -1453,20 +1507,11 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       try {
         let finalBannerUrl = editingBannerUrl || DEFAULT_BANNER;
 
-        // Se o usuário fez upload de imagem
+        // Se o usuário selecionou uma nova imagem, garante que está na nuvem
         if (currentImageBase64) {
-          try {
-            const upRes = await fetch('/api/upload-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBase64: currentImageBase64 })
-            });
-            const upData = await upRes.json();
-            if (upData.success && upData.url) {
-              finalBannerUrl = upData.url;
-            }
-          } catch (upErr) {
-            console.warn('Upload de imagem falhou, usando banner padrão/mantido:', upErr);
+          const cloudUrl = await uploadImageToCloudDirect(currentImageBase64);
+          if (cloudUrl) {
+            finalBannerUrl = cloudUrl;
           }
         }
 
