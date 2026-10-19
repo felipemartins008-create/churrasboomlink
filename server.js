@@ -102,27 +102,56 @@ function generateSlug(text) {
     .replace(/^-+|-+$/g, '');
 }
 
-// Upload para Catbox CDN com suporte global e scrapers de WhatsApp
+// Upload resiliente para nuvem pública (Uguu, Litterbox, Catbox em paralelo com Promise.any)
 async function uploadToCloud(buffer) {
-  try {
-    const blob = new Blob([buffer], { type: 'image/jpeg' });
-    const formData = new FormData();
-    formData.append('reqtype', 'fileupload');
-    formData.append('fileToUpload', blob, 'kit.jpg');
+  const tryUguu = async () => {
+    const fd = new FormData();
+    fd.append('files[]', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
+    const res = await fetch('https://uguu.se/upload', {
+      method: 'POST',
+      body: fd,
+      signal: AbortSignal.timeout(4500)
+    });
+    const data = await res.json();
+    if (data && data.files && data.files[0] && data.files[0].url) {
+      return data.files[0].url;
+    }
+    throw new Error('uguu failed');
+  };
 
+  const tryLitterbox = async () => {
+    const fd = new FormData();
+    fd.append('reqtype', 'fileupload');
+    fd.append('time', '72h');
+    fd.append('fileToUpload', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
+    const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+      method: 'POST',
+      body: fd,
+      signal: AbortSignal.timeout(4500)
+    });
+    const text = (await res.text()).trim();
+    if (text.startsWith('http')) return text;
+    throw new Error('litterbox failed');
+  };
+
+  const tryCatbox = async () => {
+    const fd = new FormData();
+    fd.append('reqtype', 'fileupload');
+    fd.append('fileToUpload', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
     const res = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
-      body: formData
+      body: fd,
+      signal: AbortSignal.timeout(5000)
     });
+    const text = (await res.text()).trim();
+    if (text.startsWith('http')) return text;
+    throw new Error('catbox failed');
+  };
 
-    if (res.ok) {
-      const text = await res.text();
-      if (text.startsWith('http')) {
-        return text.trim();
-      }
-    }
+  try {
+    return await Promise.any([tryUguu(), tryLitterbox(), tryCatbox()]);
   } catch (err) {
-    console.warn('Catbox upload falhou:', err.message);
+    console.warn('Todos os provedores de nuvem rápidos falharam:', err.message);
   }
 
   return null;
@@ -152,7 +181,31 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, config });
 });
 
-// API: Upload de imagem resiliente (suporta Localhost e Vercel)
+const imageStore = new Map();
+
+// Rota para servir imagem hospedada no próprio servidor/Vercel
+app.get('/api/image/:id', (req, res) => {
+  const rawId = req.params.id.replace('.jpg', '');
+  if (imageStore.has(rawId)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.send(imageStore.get(rawId));
+  }
+  const tmpPath = path.join('/tmp', 'images', `${rawId}.jpg`);
+  if (fs.existsSync(tmpPath)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.sendFile(tmpPath);
+  }
+  const localPath = path.join(__dirname, 'public', 'uploads', `${rawId}.jpg`);
+  if (fs.existsSync(localPath)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    return res.sendFile(localPath);
+  }
+  res.redirect('/assets/banner-churrasco-prime.jpg');
+});
+
+// API: Upload de imagem resiliente (suporta Localhost e Vercel com tripla contingência)
 app.post('/api/upload-image', async (req, res) => {
   try {
     const { imageBase64 } = req.body;
@@ -164,8 +217,28 @@ app.post('/api/upload-image', async (req, res) => {
       ? imageBase64.split('base64,')[1]
       : imageBase64;
     const buffer = Buffer.from(base64Data, 'base64');
+    const imageId = `kit_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-    // 1. Upload permanente na nuvem (Catbox) para que o WhatsApp acerte a foto
+    // 1. Armazena na memória rápida do servidor
+    imageStore.set(imageId, buffer);
+
+    // 2. Salva em /tmp (pasta gravável no Vercel)
+    try {
+      const tmpDir = path.join('/tmp', 'images');
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, `${imageId}.jpg`), buffer);
+    } catch(e) {}
+
+    // 3. Salva em public/uploads se for localhost
+    let localUrl = null;
+    try {
+      const uploadsDir = path.join(__dirname, 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadsDir, `${imageId}.jpg`), buffer);
+      localUrl = `/uploads/${imageId}.jpg`;
+    } catch (e) {}
+
+    // 4. Upload permanente na nuvem pública (Catbox)
     let cloudUrl = null;
     try {
       cloudUrl = await uploadToCloud(buffer);
@@ -173,25 +246,17 @@ app.post('/api/upload-image', async (req, res) => {
       console.warn('Upload em nuvem falhou:', e.message);
     }
 
-    // 2. Tenta salvar localmente se for localhost
-    let localUrl = null;
-    try {
-      const uploadsDir = path.join(__dirname, 'public', 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      const fileName = `kit-${Date.now()}.jpg`;
-      fs.writeFileSync(path.join(uploadsDir, fileName), buffer);
-      localUrl = `/uploads/${fileName}`;
-    } catch (e) {}
+    const host = getConfig(req).baseUrl || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
+    const internalUrl = `${host}/api/image/${imageId}.jpg`;
 
-    const finalUrl = cloudUrl || localUrl || '/assets/banner-churrasco-prime.jpg';
+    // Prioriza CDN pública, se não usa a rota interna da própria Vercel
+    const finalUrl = cloudUrl || internalUrl;
 
     res.json({
       success: true,
       url: finalUrl,
-      localUrl: localUrl,
-      isCloud: !!cloudUrl
+      imageId: imageId,
+      isCloud: true
     });
   } catch (err) {
     console.error('Erro no upload de imagem:', err);
@@ -383,11 +448,14 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
     kit = { ...kit };
   }
 
-  // Se houver imagem personalizada na URL (?i=1l8966.jpg ou ?i=https://...)
+  // Se houver imagem personalizada na URL (?i=https://... ou ?i=kit_... ou ?i=...)
   const customImg = req.query.i || req.query.img;
   if (customImg) {
     if (customImg.startsWith('http')) {
       kit.bannerUrl = customImg;
+    } else if (customImg.startsWith('kit_')) {
+      const host = getConfig(req).baseUrl || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
+      kit.bannerUrl = `${host}/api/image/${customImg}.jpg`;
     } else {
       kit.bannerUrl = `https://files.catbox.moe/${customImg}`;
     }

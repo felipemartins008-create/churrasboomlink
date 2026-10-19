@@ -939,7 +939,7 @@
           <!-- Ações Rápidas do Simulador -->
           <div class="sim-actions">
             <button type="button" class="btn btn-success" id="btnCopiarMensagem" onclick="copiarMensagemFormatada()">
-              <span>📋 Copiar Mensagem Pronta p/ WhatsApp</span>
+              <span>📋 Copiar Tudo (Link + Mensagem Pronta)</span>
             </button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
               <button type="button" class="btn btn-outline btn-sm" id="btnCopiarLink" onclick="copiarLinkAtual()">
@@ -1062,11 +1062,16 @@
       const slug = (kit.slug || kit.nome || 'kit-churrasco').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
       let imgParam = '';
-      if (kit.bannerUrl && kit.bannerUrl.includes('catbox.moe/')) {
-        const fileId = kit.bannerUrl.split('/').pop();
-        imgParam = `?i=${fileId}`;
-      } else if (kit.bannerUrl && kit.bannerUrl.startsWith('http') && !kit.bannerUrl.includes('banner-churrasco')) {
-        imgParam = `?i=${encodeURIComponent(kit.bannerUrl)}`;
+      if (kit.bannerUrl) {
+        if (kit.bannerUrl.includes('/api/image/')) {
+          const imgName = kit.bannerUrl.split('/api/image/')[1];
+          imgParam = `?i=${imgName}`;
+        } else if (kit.bannerUrl.includes('catbox.moe/')) {
+          const fileId = kit.bannerUrl.split('/').pop();
+          imgParam = `?i=${fileId}`;
+        } else if (kit.bannerUrl.startsWith('http') && !kit.bannerUrl.includes('banner-churrasco')) {
+          imgParam = `?i=${encodeURIComponent(kit.bannerUrl)}`;
+        }
       }
 
       return `${domain}/k/${slug}${imgParam}`;
@@ -1098,8 +1103,18 @@
         }
       });
 
-      // Filtra estritamente os kits que o usuário excluiu
-      kits = Array.from(mergedMap.values()).filter(k => !deletedIds.includes(String(k.id)));
+      // Filtra estritamente os kits excluídos e deduplica por nome para evitar cópias
+      const nameSet = new Set();
+      const uniqueKits = [];
+      for (const k of Array.from(mergedMap.values())) {
+        if (deletedIds.includes(String(k.id))) continue;
+        const normName = (k.nome || '').trim().toLowerCase();
+        if (normName && !nameSet.has(normName)) {
+          nameSet.add(normName);
+          uniqueKits.push(k);
+        }
+      }
+      kits = uniqueKits;
 
       const domain = getActiveDomain();
       document.getElementById('cfgBaseUrl').value = domain;
@@ -1365,9 +1380,11 @@
       try {
         const result = await compactarImagemParaWhatsApp(file);
         currentImageBase64 = result.base64;
+        editingBannerUrl = result.base64;
         uploadThumb.src = currentImageBase64;
         uploadThumb.style.display = 'inline-block';
         simOgImg.src = currentImageBase64;
+        atualizarSimulador();
 
         // Upload imediato para a nuvem permanente
         const cloudUrl = await uploadImageToCloudDirect(result.base64);
@@ -1377,12 +1394,11 @@
             `Tamanho: ${result.originalKB} KB ➔ <strong>${result.compressedKB} KB</strong> (800x800 px).<br>` +
             `✅ <em>Link da foto pronto para carregar no WhatsApp!</em>`;
           imageStatusDica.style.color = '#34d399';
-          showToast(`Foto do kit enviada com sucesso!`, '📸');
+          showToast(`Foto do kit enviada para a nuvem com sucesso!`, '📸');
+          atualizarSimulador();
         } else {
-          imageStatusDica.innerHTML = `✅ Foto compactada localmente (${result.compressedKB} KB). Será salva ao enviar.`;
+          imageStatusDica.innerHTML = `✅ Foto compactada (${result.compressedKB} KB). Pronta para divulgação!`;
         }
-
-        atualizarSimulador();
       } catch (err) {
         console.error('Erro no processamento da foto:', err);
         imageStatusDica.innerHTML = `⚠️ Erro ao otimizar foto: ${err.message}`;
@@ -1507,13 +1523,24 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       btnSalvarKit.innerHTML = '<span>⏳ Salvando kit e foto...</span>';
 
       try {
-        let finalBannerUrl = editingBannerUrl || DEFAULT_BANNER;
+        let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
 
-        // Se o usuário selecionou uma nova imagem, garante que está na nuvem
-        if (currentImageBase64) {
+        // Previne duplicação: se não está em modo de edição, mas já existe kit com o mesmo nome, atualiza
+        if (!editingKitId) {
+          const existing = localKits.find(k => k.nome && k.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+          if (existing) {
+            editingKitId = String(existing.id);
+          }
+        }
+
+        // Garante que a foto do usuário NUNCA é perdida ou substituída pela padrão
+        let finalBannerUrl = editingBannerUrl || currentImageBase64 || DEFAULT_BANNER;
+
+        if (currentImageBase64 && (!editingBannerUrl || !editingBannerUrl.startsWith('http') || editingBannerUrl.includes('banner-churrasco'))) {
           const cloudUrl = await uploadImageToCloudDirect(currentImageBase64);
           if (cloudUrl) {
             finalBannerUrl = cloudUrl;
+            editingBannerUrl = cloudUrl;
           }
         }
 
@@ -1546,15 +1573,14 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
         }
 
         // Salvar SEMPRE em localStorage permanente do navegador
-        let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
         if (editingKitId) {
           const idx = localKits.findIndex(k => String(k.id) === String(editingKitId));
           if (idx !== -1) localKits[idx] = kitObj;
           else localKits.unshift(kitObj);
-          showToast(`💾 Alterações do ${nome} salvas com sucesso!`);
+          showToast(`💾 Alterações do ${nome} salvas com sucesso!`, '✅');
         } else {
           localKits.unshift(kitObj);
-          showToast(`✨ Link do kit ${nome} criado com sucesso!`);
+          showToast(`✨ Link do kit ${nome} criado com sucesso!`, '✨');
         }
         localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
 
@@ -1607,6 +1633,12 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
                 <span class="kit-item-tag">📦 ${itensList.length} itens</span>
                 <span class="kit-item-tag">🔥 WhatsApp Pronto</span>
               </div>
+
+              <!-- BOTÃO DESTAQUE: COPIAR TUDO (LINK + MENSAGEM) -->
+              <button type="button" class="btn btn-success btn-sm btn-copiar-tudo-card" onclick="copiarTudoDoKit('${kit.id}')" style="width: 100%; margin-top: 10px; margin-bottom: 8px; font-weight: 800; padding: 10px 14px; font-size: 13.5px; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #fff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35); border: none; cursor: pointer;">
+                📋 Copiar Tudo (Link + Mensagem)
+              </button>
+
               <div class="kit-item-actions">
                 <button type="button" class="btn btn-primary btn-sm" onclick="editarKit('${kit.id}')" title="Editar">
                   ✏️ Editar
@@ -1629,6 +1661,50 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
         `;
       }).join('');
     }
+
+    // Copiar Tudo (Link + Mensagem Pronta Formatada) de um kit específico
+    window.copiarTudoDoKit = function(id) {
+      const kit = kits.find(k => String(k.id) === String(id));
+      if (!kit) return;
+
+      const kitUrl = kit.generatedLink || gerarLinkDoKit(kit);
+      const emojisNumeros = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+      const itensList = Array.isArray(kit.itens) ? kit.itens : [];
+      let itensText = '';
+      if (itensList.length > 0) {
+        itensText = itensList.map((it, idx) => `${emojisNumeros[idx] || '🔹'} ${it}`).join('\n');
+      }
+
+      const precoDe = kit.precoAncoragem ? kit.precoAncoragem.replace('R$', '').trim() : '';
+      const precoPor = kit.precoReal ? kit.precoReal.replace('R$', '').trim() : '0,00';
+
+      let econText = '';
+      const deNum = parseFloat(precoDe.replace(/\./g, '').replace(',', '.'));
+      const porNum = parseFloat(precoPor.replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(deNum) && !isNaN(porNum) && deNum > porNum) {
+        const eco = (deNum - porNum).toFixed(2).replace('.', ',');
+        econText = `\n💰 *Economia de R$ ${eco}!*`;
+      }
+
+      const textoZap = `${kitUrl}
+
+🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+
+*${kit.nome}*
+${kit.descricao ? '_' + kit.descricao + '_\n' : ''}
+📦 *O que vem no kit:*
+${itensText}
+
+${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)${econText}
+
+👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲`;
+
+      navigator.clipboard.writeText(textoZap).then(() => {
+        showToast(`📋 Link e mensagem do "${kit.nome}" copiados!`, '✅');
+      }).catch(() => {
+        prompt('Copie a mensagem completa abaixo:', textoZap);
+      });
+    };
 
     // Editar Kit
     window.editarKit = function(id) {
