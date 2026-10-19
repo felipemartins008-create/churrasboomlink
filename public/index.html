@@ -875,12 +875,6 @@
               <button type="button" class="btn-add-item" id="btnAddItem" onclick="adicionarItem()">
                 <span>➕</span> Adicionar Item
               </button>
-              <button type="button" class="btn-presets" onclick="aplicarPreset('prime')">
-                🥩 Carregar Sugestão Prime (8 Itens)
-              </button>
-              <button type="button" class="btn-presets" onclick="aplicarPreset('economico')">
-                🔥 Sugestão Custo-Benefício
-              </button>
             </div>
           </div>
 
@@ -1091,6 +1085,12 @@
 
       const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
       const deletedIds = JSON.parse(localStorage.getItem('churras_deleted_ids') || '[]');
+      const MOCK_NAMES = [
+        'kit churrasco prime família (6 a 8 pessoas)',
+        'kit churrasco prime familia (6 a 8 pessoas)',
+        'kit churrasco amigos & resenha (10 a 12 pessoas)',
+        'kit churrasco casal vip (2 a 3 pessoas)'
+      ];
 
       // Mescla kits locais criados no navegador com kits do servidor
       const mergedMap = new Map();
@@ -1101,12 +1101,14 @@
         }
       });
 
-      // Filtra estritamente os kits excluídos e deduplica por nome para evitar cópias
+      // Filtra estritamente os kits excluídos e os pré-definidos de teste
       const nameSet = new Set();
       const uniqueKits = [];
       for (const k of Array.from(mergedMap.values())) {
         if (deletedIds.includes(String(k.id))) continue;
+        if (k.id === '1' || k.id === '2' || k.id === '3') continue;
         const normName = (k.nome || '').trim().toLowerCase();
+        if (MOCK_NAMES.includes(normName)) continue;
         if (normName && !nameSet.has(normName)) {
           nameSet.add(normName);
           uniqueKits.push(k);
@@ -1190,52 +1192,7 @@
       atualizarContadorItens();
     }
 
-    // Presets rápidos de churrasco
-    function aplicarPreset(tipo) {
-      if (tipo === 'prime') {
-        preencherItens([
-          '1,2kg Picanha Bovina Angus Selecionada',
-          '1,0kg Fraldinha Grill Macia',
-          '1,0kg Linguiça Toscana Artesanal Suína',
-          '800g Coração de Frango Temperado Especial',
-          '1 Pct Pão de Alho Tradicional Crocante (400g)',
-          '1 Pct Queijo Coalho no Espeto (400g)',
-          '1 Pote Farofa Especial da Casa Crocante (400g)',
-          '1 Pct Carvão Vegetal Selecionado 4kg'
-        ]);
-        if (!document.getElementById('nome').value) {
-          document.getElementById('nome').value = 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
-        }
-        if (!document.getElementById('precoAncoragem').value) {
-          document.getElementById('precoAncoragem').value = '289,90';
-        }
-        if (!document.getElementById('precoReal').value) {
-          document.getElementById('precoReal').value = '189,90';
-        }
-      } else if (tipo === 'economico') {
-        preencherItens([
-          '1,0kg Fraldinha / Alcatra Bovina Grill',
-          '1,0kg Linguiça Toscana Especial',
-          '1,0kg Sobrecoxa Desossada e Marinada',
-          '1 Pct Pão de Alho Tradicional 400g',
-          '1 Pct Queijo Coalho no Espeto 400g',
-          '1 Pote Farofa Crocante da Casa 350g',
-          '1 Saco de Carvão 4kg'
-        ]);
-        if (!document.getElementById('nome').value) {
-          document.getElementById('nome').value = 'Kit Churrasco Econômico Amigos (4 a 6 Pessoas)';
-        }
-        if (!document.getElementById('precoAncoragem').value) {
-          document.getElementById('precoAncoragem').value = '210,00';
-        }
-        if (!document.getElementById('precoReal').value) {
-          document.getElementById('precoReal').value = '149,90';
-        }
-      }
-      calcularEconomia();
-      atualizarSimulador();
-      showToast('Sugestão de kit carregada com sucesso!', '🔥');
-    }
+
 
     // Cálculo de Economia
     function calcularEconomia() {
@@ -1405,9 +1362,9 @@
 
     // Atualização em Tempo Real do Simulador WhatsApp
     function atualizarSimulador() {
-      const nome = document.getElementById('nome').value.trim() || 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
-      const precoDe = document.getElementById('precoAncoragem').value.trim() || '289,90';
-      const precoPor = document.getElementById('precoReal').value.trim() || '189,90';
+      const nome = document.getElementById('nome').value.trim() || 'Nome do Kit Churrasco';
+      const precoDe = document.getElementById('precoAncoragem').value.trim() || '0,00';
+      const precoPor = document.getElementById('precoReal').value.trim() || '0,00';
       const itens = obterItensFormulario();
       const desc = document.getElementById('descricao').value.trim();
 
@@ -1451,7 +1408,7 @@
       if (itens.length > 0) {
         itensText = itens.map((it, idx) => `${emojisNumeros[idx] || '🔹'} ${it}`).join('\n');
       } else {
-        itensText = '1️⃣ 1,2kg Picanha Bovina Angus Selecionada\n2️⃣ 1,0kg Fraldinha Grill Macia\n3️⃣ 1,0kg Linguiça Toscana Artesanal\n4️⃣ 1 Pct Pão de Alho Especial\n5️⃣ 1 Pote Farofa Crocante da Casa';
+        itensText = '1️⃣ [Item 1 do seu kit]\n2️⃣ [Item 2 do seu kit]\n3️⃣ [Item 3 do seu kit]';
       }
 
       // Link do WhatsApp com mensagem de interesse no kit
@@ -1890,22 +1847,13 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
         .replace(/'/g, '&#039;');
     }
 
-    // Inicialização ao carregar página
+    // Inicialização ao carregar página (Formulário 100% limpo, sem pré-definições)
     window.addEventListener('DOMContentLoaded', () => {
-      preencherItens([
-        '1,2kg Picanha Bovina Angus Selecionada',
-        '1,0kg Fraldinha Grill Macia',
-        '1,0kg Linguiça Toscana Artesanal Suína',
-        '800g Coração de Frango Temperado Especial',
-        '1 Pct Pão de Alho Tradicional Crocante (400g)',
-        '1 Pct Queijo Coalho no Espeto (400g)',
-        '1 Pote Farofa Especial da Casa Crocante (400g)',
-        '1 Pct Carvão Vegetal Selecionado 4kg'
-      ]);
-      document.getElementById('nome').value = 'Kit Churrasco Prime Família (6 a 8 Pessoas)';
-      document.getElementById('precoAncoragem').value = '289,90';
-      document.getElementById('precoReal').value = '189,90';
-      document.getElementById('descricao').value = 'O kit mais pedido para o seu churrasco perfeito! Carnes nobres macias, acompanhamentos e entrega rápida.';
+      preencherItens([]);
+      document.getElementById('nome').value = '';
+      document.getElementById('precoAncoragem').value = '';
+      document.getElementById('precoReal').value = '';
+      document.getElementById('descricao').value = '';
       
       carregarDados();
     });

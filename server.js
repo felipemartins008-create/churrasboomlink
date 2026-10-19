@@ -19,16 +19,20 @@ let inMemoryKits = null;
 let inMemoryConfig = null;
 
 function getKits() {
-  if (inMemoryKits && inMemoryKits.length > 0) return inMemoryKits;
+  if (Array.isArray(inMemoryKits)) return inMemoryKits;
   if (fs.existsSync(TMP_DATA_FILE)) {
     try {
-      inMemoryKits = JSON.parse(fs.readFileSync(TMP_DATA_FILE, 'utf8'));
-      if (inMemoryKits && inMemoryKits.length > 0) return inMemoryKits;
+      const data = JSON.parse(fs.readFileSync(TMP_DATA_FILE, 'utf8'));
+      if (Array.isArray(data)) {
+        inMemoryKits = data;
+        return inMemoryKits;
+      }
     } catch (e) {}
   }
   if (!fs.existsSync(DATA_FILE)) return [];
   try {
-    inMemoryKits = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    inMemoryKits = Array.isArray(data) ? data : [];
     return inMemoryKits;
   } catch (e) {
     return [];
