@@ -590,6 +590,15 @@
       gap: 10px;
     }
 
+    @keyframes pulseGreen {
+      0%, 100% {
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35);
+      }
+      50% {
+        box-shadow: 0 6px 25px rgba(34, 197, 94, 0.7);
+      }
+    }
+
     /* Saved Kits Section */
     .saved-kits-section {
       margin-top: 20px;
@@ -887,10 +896,10 @@
             <textarea id="descricao" rows="2" placeholder="Ex: Carnes selecionadas a vácuo, embalagem térmica e cortes macios para o churrasco perfeito."></textarea>
           </div>
 
-          <!-- Botão Submeter -->
+          <!-- Botão Submeter: Apenas Gerar Link -->
           <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn btn-primary" id="btnSalvarKit" style="flex: 1; padding: 14px;">
-              <span>✨ Salvar e Gerar Link de Divulgação</span>
+            <button type="submit" class="btn btn-primary" id="btnSalvarKit" style="flex: 1; padding: 14px; font-size: 15.5px; font-weight: 800;">
+              <span>🚀 Gerar Link</span>
             </button>
           </div>
         </form>
@@ -928,23 +937,11 @@
             </div>
           </div>
 
-          <!-- Ações Rápidas do Simulador -->
-          <div class="sim-actions">
-            <button type="button" class="btn btn-success" id="btnCopiarMensagem" onclick="copiarMensagemFormatada()" style="font-weight: 800; padding: 13px 18px; width: 100%; font-size: 14px; margin-bottom: 8px;">
+          <!-- Ações Rápidas do Simulador (Aparece apenas quando o link for gerado) -->
+          <div class="sim-actions" id="simActionsArea" style="display: none;">
+            <button type="button" class="btn btn-success" id="btnCopiarMensagem" onclick="copiarMensagemFormatada()" style="font-weight: 800; padding: 14px 18px; width: 100%; font-size: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35); animation: pulseGreen 2.5s infinite; cursor: pointer;">
               <span>📋 Copiar Mensagem Completa com Link</span>
             </button>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <button type="button" class="btn btn-outline btn-sm" id="btnCopiarLink" onclick="copiarLinkAtual()">
-                <span>🔗 Copiar Link</span>
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" id="btnTestarZap" onclick="testarWhatsAppDireto()">
-                <span>🚀 Testar no Zap</span>
-              </button>
-            </div>
-            <a href="#" target="_blank" id="btnVerLandingPage" class="btn btn-outline btn-sm" style="display: none; margin-top: 6px;">
-              <span>👁️ Abrir Landing Page do Kit</span>
-            </a>
           </div>
         </div>
       </div>
@@ -1025,11 +1022,11 @@
 
     // Elementos Simulador WhatsApp
     const simOgImg = document.getElementById('simOgImg');
-    const simOgTitle = document.getElementById('simOgTitle');
-    const simOgDesc = document.getElementById('simOgDesc');
     const simOgLink = document.getElementById('simOgLink');
     const simZapMessage = document.getElementById('simZapMessage');
-    const btnVerLandingPage = document.getElementById('btnVerLandingPage');
+    const simActionsArea = document.getElementById('simActionsArea');
+    const btnCopiarMensagem = document.getElementById('btnCopiarMensagem');
+    let isLinkGerado = false;
 
     // Toast helper
     function showToast(msg, icon = '✅') {
@@ -1135,13 +1132,13 @@
 
       row.innerHTML = `
         <div class="item-num">${num}</div>
-        <input type="text" class="item-input-field" placeholder="Ex: 1,2kg Picanha Bovina Angus" value="${escapeHtml(valor)}" oninput="atualizarSimulador()">
+        <input type="text" class="item-input-field" placeholder="Ex: 1,2kg Picanha Bovina Angus" value="${escapeHtml(valor)}" oninput="onInputChange()">
         <button type="button" class="btn-remove-item" title="Remover item" onclick="removerItem(this)">✕</button>
       `;
 
       itemInputsList.appendChild(row);
       atualizarContadorItens();
-      atualizarSimulador();
+      onInputChange();
     }
 
     function removerItem(btn) {
@@ -1149,7 +1146,7 @@
       row.remove();
       renumerarItens();
       atualizarContadorItens();
-      atualizarSimulador();
+      onInputChange();
     }
 
     function renumerarItens() {
@@ -1385,8 +1382,6 @@
       }
 
       // Open Graph Box (Sem texto de subtítulo acompanhando o link, apenas foto e domínio)
-      if (simOgTitle) simOgTitle.textContent = '';
-      if (simOgDesc) simOgDesc.textContent = '';
       if (simOgLink) {
         try {
           simOgLink.textContent = new URL(kitUrl, window.location.origin).hostname;
@@ -1408,10 +1403,11 @@
       const zapMsgPadrao = `Olá ChurrasBoom! Vi a promoção e quero pedir o *${nome}* por *R$ ${precoPor}*. Como faço para receber?`;
       const zapLinkDireto = `https://wa.me/${config.whatsappNumber || '5511918992002'}?text=${encodeURIComponent(zapMsgPadrao)}`;
 
-      // Texto completo para WhatsApp com o link no topo
-      const textoZap = `${kitUrl}
+      // O link no topo da mensagem só aparece quando o link foi gerado!
+      const linkLinha = isLinkGerado && kitUrl ? `${kitUrl}\n\n` : '';
 
-🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+      // Texto completo para WhatsApp com o link no topo (se já gerado)
+      const textoZap = `${linkLinha}🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
 
 *${nome}*
 ${desc ? '_' + desc + '_\n' : ''}
@@ -1432,23 +1428,39 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       const minutos = String(now.getMinutes()).padStart(2, '0');
       document.getElementById('simBubbleTime').textContent = `${horas}:${minutos} ✓✓`;
 
-      btnVerLandingPage.href = kitUrl;
-      btnVerLandingPage.style.display = 'inline-flex';
       const simOgCardLink = document.getElementById('simOgCardLink');
       if (simOgCardLink) simOgCardLink.href = kitUrl;
+
+      // O botão de copiar mensagem e o contêiner de ações só aparecem quando o link foi gerado
+      if (simActionsArea) {
+        simActionsArea.style.display = isLinkGerado ? 'flex' : 'none';
+      }
+      if (btnCopiarMensagem) {
+        btnCopiarMensagem.style.display = isLinkGerado ? 'block' : 'none';
+      }
+    }
+
+    // Ouvinte nos inputs para resetar visibilidade do botão caso o usuário altere algo antes de gerar novo link
+    function onInputChange() {
+      if (isLinkGerado && !editingKitId) {
+        isLinkGerado = false;
+        if (simActionsArea) simActionsArea.style.display = 'none';
+        if (btnCopiarMensagem) btnCopiarMensagem.style.display = 'none';
+      }
+      atualizarSimulador();
     }
 
     // Ouvintes nos inputs para tempo real
-    document.getElementById('nome').addEventListener('input', atualizarSimulador);
+    document.getElementById('nome').addEventListener('input', onInputChange);
     document.getElementById('precoAncoragem').addEventListener('input', () => {
       calcularEconomia();
-      atualizarSimulador();
+      onInputChange();
     });
     document.getElementById('precoReal').addEventListener('input', () => {
       calcularEconomia();
-      atualizarSimulador();
+      onInputChange();
     });
-    document.getElementById('descricao').addEventListener('input', atualizarSimulador);
+    document.getElementById('descricao').addEventListener('input', onInputChange);
 
     // Salvar Kit (Novo ou Edição)
     form.addEventListener('submit', async (e) => {
@@ -1526,20 +1538,32 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
           showToast(`💾 Alterações do ${nome} salvas com sucesso!`, '✅');
         } else {
           localKits.unshift(kitObj);
-          showToast(`✨ Link do kit ${nome} criado com sucesso!`, '✨');
+          showToast(`✨ Link do kit ${nome} gerado com sucesso!`, '✨');
         }
         localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
 
-        cancelarEdicao();
+        // Ativa o estado de link gerado: o link surge no topo da mensagem e o botão de copiar aparece
+        isLinkGerado = true;
+        generatedCurrentLink = kitObj.generatedLink;
+        atualizarSimulador();
         carregarDados();
+
+        if (simActionsArea) simActionsArea.style.display = 'flex';
+        if (btnCopiarMensagem) {
+          btnCopiarMensagem.style.display = 'block';
+          btnCopiarMensagem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
       } catch (err) {
         console.error('Erro ao salvar kit:', err);
-        showToast(`✨ Kit salvo com sucesso!`, '✅');
-        cancelarEdicao();
+        showToast(`✨ Link do kit gerado com sucesso!`, '✅');
+        isLinkGerado = true;
+        atualizarSimulador();
         carregarDados();
+        if (simActionsArea) simActionsArea.style.display = 'flex';
+        if (btnCopiarMensagem) btnCopiarMensagem.style.display = 'block';
       } finally {
         btnSalvarKit.disabled = false;
-        btnSalvarKit.innerHTML = '<span>✨ Salvar e Gerar Link de Divulgação</span>';
+        btnSalvarKit.innerHTML = '<span>🚀 Gerar Link</span>';
       }
     });
 
@@ -1675,11 +1699,12 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
 
       preencherItens(kit.itens || []);
       calcularEconomia();
+      isLinkGerado = true;
       atualizarSimulador();
 
       formTitle.textContent = `Editando: ${kit.nome}`;
       formIcon.textContent = '✏️';
-      btnSalvarKit.innerHTML = '<span>💾 Salvar Alterações do Kit</span>';
+      btnSalvarKit.innerHTML = '<span>🚀 Atualizar e Gerar Link</span>';
       btnCancelarEdicao.style.display = 'inline-flex';
 
       document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1691,6 +1716,10 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
       editingKitId = null;
       editingBannerUrl = null;
       currentImageBase64 = null;
+      isLinkGerado = false;
+
+      if (simActionsArea) simActionsArea.style.display = 'none';
+      if (btnCopiarMensagem) btnCopiarMensagem.style.display = 'none';
 
       form.reset();
       uploadThumb.style.display = 'none';
@@ -1699,7 +1728,7 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
 
       formTitle.textContent = 'Cadastrar Novo Kit Churrasco';
       formIcon.textContent = '➕';
-      btnSalvarKit.innerHTML = '<span>✨ Salvar e Gerar Link de Divulgação</span>';
+      btnSalvarKit.innerHTML = '<span>🚀 Gerar Link</span>';
       btnCancelarEdicao.style.display = 'none';
 
       preencherItens([]);
