@@ -818,28 +818,13 @@
             <input type="text" id="nome" required placeholder="Ex: Kit Churrasco Prime Família (6 a 8 pessoas)" autocomplete="off">
           </div>
 
-          <!-- Preços (Ancoragem + Real) -->
-          <div class="price-inputs-row">
-            <div class="form-group">
-              <label for="precoAncoragem">
-                Preço de Ancoragem (De R$) *
-                <span class="label-hint">(Valor cheio/riscado)</span>
-              </label>
-              <input type="text" id="precoAncoragem" required placeholder="Ex: 289,90" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="precoReal">
-                Preço Promocional (Por R$) *
-                <span class="label-hint">(Valor final com desconto)</span>
-              </label>
-              <input type="text" id="precoReal" required placeholder="Ex: 189,90" autocomplete="off">
-            </div>
-          </div>
-
-          <!-- Badge de Economia Calculada Automaticamente -->
-          <div class="economy-badge" id="economyBadge">
-            <span>💡</span> Digite os preços acima para calcular o valor de economia e desconto percebido.
+          <!-- Preço do Kit -->
+          <div class="form-group">
+            <label for="precoReal">
+              Valor Promocional do Kit (R$) *
+              <span class="label-hint">(Valor final de venda do kit)</span>
+            </label>
+            <input type="text" id="precoReal" required placeholder="Ex: 89,90" autocomplete="off">
           </div>
 
           <!-- Foto do Kit Churrasco -->
@@ -1018,7 +1003,6 @@
     const imagemFileInput = document.getElementById('imagemFileInput');
     const uploadThumb = document.getElementById('uploadThumb');
     const imageStatusDica = document.getElementById('imageStatusDica');
-    const economyBadge = document.getElementById('economyBadge');
 
     // Elementos Simulador WhatsApp
     const simOgImg = document.getElementById('simOgImg');
@@ -1179,29 +1163,9 @@
 
 
 
-    // Cálculo de Economia
+    // Cálculo de Economia (Desativado: mantendo apenas preço promocional)
     function calcularEconomia() {
-      const deStr = document.getElementById('precoAncoragem').value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
-      const porStr = document.getElementById('precoReal').value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
-
-      const deNum = parseFloat(deStr);
-      const porNum = parseFloat(porStr);
-
-      if (!isNaN(deNum) && !isNaN(porNum) && deNum > porNum) {
-        const eco = deNum - porNum;
-        const perc = Math.round((eco / deNum) * 100);
-        economyBadge.innerHTML = `
-          <span>🔥</span> Economia de <strong>R$ ${eco.toFixed(2).replace('.', ',')}</strong> para o cliente (${perc}% de desconto promocional!)
-        `;
-        economyBadge.style.color = '#34d399';
-        economyBadge.style.borderColor = 'rgba(52, 211, 153, 0.4)';
-        return { economia: eco.toFixed(2).replace('.', ','), perc };
-      } else {
-        economyBadge.innerHTML = `<span>💡</span> Digite os preços acima para calcular o valor de economia e desconto percebido.`;
-        economyBadge.style.color = '#fb923c';
-        economyBadge.style.borderColor = 'rgba(249, 115, 22, 0.4)';
-        return null;
-      }
+      return null;
     }
 
     /**
@@ -1348,12 +1312,10 @@
     // Atualização em Tempo Real do Simulador WhatsApp
     function atualizarSimulador() {
       const nome = document.getElementById('nome').value.trim() || 'Nome do Kit Churrasco';
-      const precoDe = document.getElementById('precoAncoragem').value.trim() || '0,00';
       const precoPor = document.getElementById('precoReal').value.trim() || '0,00';
       const itens = obterItensFormulario();
       const desc = document.getElementById('descricao').value.trim();
 
-      const econInfo = calcularEconomia();
       const domain = getActiveDomain();
 
       let bannerParaLink = DEFAULT_BANNER;
@@ -1363,7 +1325,6 @@
 
       const kitSimulado = {
         nome,
-        precoAncoragem: precoDe,
         precoReal: precoPor,
         itens,
         bannerUrl: bannerParaLink
@@ -1414,9 +1375,7 @@ ${desc ? '_' + desc + '_\n' : ''}
 📦 *O que vem no kit:*
 ${itensText}
 
-❌ De: ~R$ ${precoDe}~
-🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)
-${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
+🔥 *Valor do Kit: R$ ${precoPor}* (À vista / Pix)
 
 👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲`;
 
@@ -1452,14 +1411,7 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
 
     // Ouvintes nos inputs para tempo real
     document.getElementById('nome').addEventListener('input', onInputChange);
-    document.getElementById('precoAncoragem').addEventListener('input', () => {
-      calcularEconomia();
-      onInputChange();
-    });
-    document.getElementById('precoReal').addEventListener('input', () => {
-      calcularEconomia();
-      onInputChange();
-    });
+    document.getElementById('precoReal').addEventListener('input', onInputChange);
     document.getElementById('descricao').addEventListener('input', onInputChange);
 
     // Salvar Kit (Novo ou Edição)
@@ -1467,7 +1419,6 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       e.preventDefault();
 
       const nome = document.getElementById('nome').value.trim();
-      const precoAncoragem = document.getElementById('precoAncoragem').value.trim();
       const precoReal = document.getElementById('precoReal').value.trim();
       const descricao = document.getElementById('descricao').value.trim();
       const itens = obterItensFormulario();
@@ -1509,7 +1460,6 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
           id: kitId,
           slug: slug,
           nome,
-          precoAncoragem,
           precoReal,
           bannerUrl: finalBannerUrl,
           itens,
@@ -1584,7 +1534,6 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       container.innerHTML = kits.map(kit => {
         const link = kit.generatedLink || gerarLinkDoKit(kit);
         const itensList = Array.isArray(kit.itens) ? kit.itens : [];
-        const deVal = kit.precoAncoragem ? `R$ ${kit.precoAncoragem.replace('R$', '').trim()}` : '';
         const porVal = kit.precoReal ? `R$ ${kit.precoReal.replace('R$', '').trim()}` : 'R$ 0,00';
 
         return `
@@ -1596,7 +1545,6 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
             <div class="kit-item-body">
               <div class="kit-item-title">${escapeHtml(kit.nome)}</div>
               <div class="kit-item-pricing">
-                ${deVal ? `<span class="kit-item-anchor">${deVal}</span>` : ''}
                 <span class="kit-item-real">${porVal}</span>
               </div>
               <div class="kit-item-tags">
@@ -1645,16 +1593,7 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
         itensText = itensList.map((it, idx) => `${emojisNumeros[idx] || '🔹'} ${it}`).join('\n');
       }
 
-      const precoDe = kit.precoAncoragem ? kit.precoAncoragem.replace('R$', '').trim() : '';
       const precoPor = kit.precoReal ? kit.precoReal.replace('R$', '').trim() : '0,00';
-
-      let econText = '';
-      const deNum = parseFloat(precoDe.replace(/\./g, '').replace(',', '.'));
-      const porNum = parseFloat(precoPor.replace(/\./g, '').replace(',', '.'));
-      if (!isNaN(deNum) && !isNaN(porNum) && deNum > porNum) {
-        const eco = (deNum - porNum).toFixed(2).replace('.', ',');
-        econText = `\n💰 *Economia de R$ ${eco}!*`;
-      }
 
       const textoZap = `${kitUrl}
 
@@ -1665,7 +1604,7 @@ ${kit.descricao ? '_' + kit.descricao + '_\n' : ''}
 📦 *O que vem no kit:*
 ${itensText}
 
-${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPor}* (À vista / Pix)${econText}
+🔥 *Valor do Kit: R$ ${precoPor}* (À vista / Pix)
 
 👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲`;
 
@@ -1686,7 +1625,6 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
       currentImageBase64 = null;
 
       document.getElementById('nome').value = kit.nome || '';
-      document.getElementById('precoAncoragem').value = kit.precoAncoragem || '';
       document.getElementById('precoReal').value = kit.precoReal || '';
       document.getElementById('descricao').value = kit.descricao || '';
       imagemFileInput.value = '';
@@ -1743,7 +1681,6 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
 
       cancelarEdicao();
       document.getElementById('nome').value = `${kit.nome} (Cópia)`;
-      document.getElementById('precoAncoragem').value = kit.precoAncoragem || '';
       document.getElementById('precoReal').value = kit.precoReal || '';
       document.getElementById('descricao').value = kit.descricao || '';
       editingBannerUrl = kit.bannerUrl || null;
@@ -1859,7 +1796,6 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
     window.addEventListener('DOMContentLoaded', () => {
       preencherItens([]);
       document.getElementById('nome').value = '';
-      document.getElementById('precoAncoragem').value = '';
       document.getElementById('precoReal').value = '';
       document.getElementById('descricao').value = '';
       

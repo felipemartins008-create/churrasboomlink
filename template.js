@@ -21,7 +21,6 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
     absoluteImageUrl = `${cleanBase}${absoluteImageUrl.startsWith('/') ? '' : '/'}${absoluteImageUrl}`;
   }
 
-  const precoDe = formatCurrency(kit.precoAncoragem);
   const precoPor = formatCurrency(kit.precoReal);
 
   const itens = Array.isArray(kit.itens) ? kit.itens.filter(i => i && i.trim().length > 0) : [];
@@ -31,7 +30,7 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
   
   // Resumo dos primeiros itens para caber perfeitamente no balão do WhatsApp
   const itensResumo = itens.slice(0, 4).join(', ');
-  const pageDesc = `🔥 DE ${precoDe} POR APENAS ${precoPor}! ${itensResumo ? 'Inclui: ' + itensResumo + '...' : ''} Toque para pedir no WhatsApp!`;
+  const pageDesc = `🔥 VALOR DO KIT: ${precoPor}! ${itensResumo ? 'Inclui: ' + itensResumo + '...' : ''} Toque para pedir no WhatsApp!`;
 
   // Mensagem do WhatsApp pré-definida
   const defaultMsg = kit.whatsappMsg || `Olá ChurrasBoom! Tenho interesse no *${kit.nome}* por *${precoPor}*. Gostaria de fazer meu pedido!`;
@@ -504,14 +503,10 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
       <h1 class="kit-title">${escapeHtml(kit.nome)}</h1>
       <p class="kit-desc">${escapeHtml(kit.descricao || 'Kit completo para seu churrasco perfeito com carnes nobres e acompanhamentos da melhor qualidade.')}</p>
 
-      <!-- Anchoring Price Box -->
+      <!-- Price Box -->
       <div class="price-box">
-        <div class="price-row-top">
-          <span class="price-anchor-label">Preço Normal de Balcão</span>
-          <span class="price-anchor-value">${precoDe}</span>
-        </div>
         <div class="price-real-row">
-          <span class="price-real-label">Por Apenas</span>
+          <span class="price-real-label">Valor do Kit</span>
           <span class="price-real-value">${precoPor}</span>
           <span class="price-pix-badge">⚡ À VISTA / PIX</span>
         </div>
