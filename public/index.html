@@ -914,9 +914,7 @@
                 <div class="sim-og-card">
                   <img id="simOgImg" src="/assets/banner-churrasco-prime.jpg" alt="Preview Kit" class="sim-og-img">
                   <div class="sim-og-meta">
-                    <div class="sim-og-title" id="simOgTitle">🥩 Kit Churrasco Prime Família | ChurrasBoom</div>
-                    <div class="sim-og-desc" id="simOgDesc">🔥 DE R$ 289,90 POR APENAS R$ 189,90! Picanha Bovina Angus, Fraldinha Grill, Linguiça Toscana... Toque para pedir no WhatsApp!</div>
-                    <div class="sim-og-link" id="simOgLink">churrasboom.com/kit-churrasco</div>
+                    <div class="sim-og-link" id="simOgLink">churrasboomlink.vercel.app</div>
                   </div>
                 </div>
               </a>
@@ -1386,11 +1384,16 @@
         simOgImg.src = DEFAULT_BANNER;
       }
 
-      // Open Graph Box
-      simOgTitle.textContent = `🥩 ${nome} | ChurrasBoom`;
-      const itensResumo = itens.slice(0, 3).join(', ');
-      simOgDesc.textContent = `🔥 DE R$ ${precoDe} POR APENAS R$ ${precoPor}! ${itensResumo ? itensResumo + '...' : ''} Clique para pedir no WhatsApp!`;
-      simOgLink.textContent = kitUrl.replace(/^https?:\/\//, '');
+      // Open Graph Box (Sem texto de subtítulo acompanhando o link, apenas foto e domínio)
+      if (simOgTitle) simOgTitle.textContent = '';
+      if (simOgDesc) simOgDesc.textContent = '';
+      if (simOgLink) {
+        try {
+          simOgLink.textContent = new URL(kitUrl, window.location.origin).hostname;
+        } catch (e) {
+          simOgLink.textContent = kitUrl.replace(/^https?:\/\//, '').split('/')[0];
+        }
+      }
 
       // Emojis e Lista de Itens no Texto
       const emojisNumeros = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];

@@ -55,12 +55,11 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${escapeHtml(pageTitle)}</title>
 
-  <!-- Meta Tags Essenciais para o WhatsApp (Open Graph) -->
+  <!-- Meta Tags para o WhatsApp: Apenas a Foto Sem Texto Acompanhando -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="${escapeHtml(storeName)} - Cortes & Kits Nobres" />
-  <meta property="og:title" content="${escapeHtml(pageTitle)}" />
-  <meta property="og:description" content="${escapeHtml(pageDesc)}" />
-  <meta name="description" content="${escapeHtml(pageDesc)}" />
+  <meta property="og:title" content="" />
+  <meta property="og:description" content="" />
+  <meta name="description" content="" />
   <meta property="og:image" content="${absoluteImageUrl}" />
   <meta property="og:image:secure_url" content="${absoluteImageUrl}" />
   <meta property="og:image:type" content="image/jpeg" />
@@ -70,8 +69,8 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${escapeHtml(pageTitle)}" />
-  <meta name="twitter:description" content="${escapeHtml(pageDesc)}" />
+  <meta name="twitter:title" content="" />
+  <meta name="twitter:description" content="" />
   <meta name="twitter:image" content="${absoluteImageUrl}" />
 
   <!-- Fontes -->
