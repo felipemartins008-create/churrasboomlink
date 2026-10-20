@@ -932,19 +932,9 @@
 
           <!-- Ações Rápidas do Simulador -->
           <div class="sim-actions">
-            <!-- Dica para o usuário sobre a foto no WhatsApp -->
-            <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 12px; padding: 10px 14px; font-size: 12px; color: #86efac; margin-bottom: 10px; line-height: 1.5; text-align: left;">
-              💡 <strong>Dica WhatsApp:</strong> Para a foto aparecer no balão <em>sem o link no texto</em>: use <strong>Copiar c/ Link</strong>, cole no WhatsApp, aguarde 1 segundo o card com a foto carregar no topo e <strong>apague a linha do link</strong> antes de enviar! O card da foto permanecerá firme no balão.
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
-              <button type="button" class="btn btn-success" id="btnCopiarMensagemSemLink" onclick="copiarMensagemFormatada(false)" style="font-weight: 800; padding: 12px 16px;">
-                <span>📋 Copiar Mensagem (Sem Link no Texto)</span>
-              </button>
-              <button type="button" class="btn btn-outline" id="btnCopiarMensagemComLink" onclick="copiarMensagemFormatada(true)" style="font-weight: 700; font-size: 13px; padding: 9px 14px; border-color: rgba(255,255,255,0.15);">
-                <span>🖼️ Copiar c/ Link (Gera Foto Automática no Zap)</span>
-              </button>
-            </div>
+            <button type="button" class="btn btn-success" id="btnCopiarMensagem" onclick="copiarMensagemFormatada()" style="font-weight: 800; padding: 13px 18px; width: 100%; font-size: 14px; margin-bottom: 8px;">
+              <span>📋 Copiar Mensagem Completa com Link</span>
+            </button>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
               <button type="button" class="btn btn-outline btn-sm" id="btnCopiarLink" onclick="copiarLinkAtual()">
@@ -1415,8 +1405,10 @@
       const zapMsgPadrao = `Olá ChurrasBoom! Vi a promoção e quero pedir o *${nome}* por *R$ ${precoPor}*. Como faço para receber?`;
       const zapLinkDireto = `https://wa.me/${config.whatsappNumber || '5511918992002'}?text=${encodeURIComponent(zapMsgPadrao)}`;
 
-      // Texto da mensagem SEM o link no corpo (a foto clicável fica no card no topo!)
-      const textoZap = `🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+      // Texto completo para WhatsApp com o link no topo
+      const textoZap = `${kitUrl}
+
+🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
 
 *${nome}*
 ${desc ? '_' + desc + '_\n' : ''}
@@ -1585,15 +1577,10 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
                 <span class="kit-item-tag">🔥 WhatsApp Pronto</span>
               </div>
 
-              <!-- BOTÕES DESTAQUE: COPIAR SEM LINK E COM LINK -->
-              <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px; margin-bottom: 8px;">
-                <button type="button" class="btn btn-success btn-sm btn-copiar-tudo-card" onclick="copiarTudoDoKit('${kit.id}', false)" style="width: 100%; font-weight: 800; padding: 10px 14px; font-size: 13.5px; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #fff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35); border: none; cursor: pointer;">
-                  📋 Copiar Mensagem (Sem Link)
-                </button>
-                <button type="button" class="btn btn-outline btn-sm" onclick="copiarTudoDoKit('${kit.id}', true)" style="width: 100%; font-weight: 700; padding: 8px 12px; font-size: 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; cursor: pointer;" title="Copia com o link para o WhatsApp puxar a foto automaticamente">
-                  🖼️ Copiar c/ Link (Gera Foto no WhatsApp)
-                </button>
-              </div>
+              <!-- BOTÃO ÚNICO: COPIAR MENSAGEM COMPLETA COM LINK -->
+              <button type="button" class="btn btn-success btn-sm btn-copiar-tudo-card" onclick="copiarTudoDoKit('${kit.id}')" style="width: 100%; margin-top: 10px; margin-bottom: 8px; font-weight: 800; padding: 11px 16px; font-size: 13.5px; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #fff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35); border: none; cursor: pointer;">
+                📋 Copiar Mensagem Completa com Link
+              </button>
 
               <div class="kit-item-actions">
                 <button type="button" class="btn btn-primary btn-sm" onclick="editarKit('${kit.id}')" title="Editar">
@@ -1618,8 +1605,8 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
       }).join('');
     }
 
-    // Copiar Texto de um kit específico (com ou sem link)
-    window.copiarTudoDoKit = function(id, comLink = false) {
+    // Copiar Mensagem Completa com Link de um kit específico
+    window.copiarTudoDoKit = function(id) {
       const kit = kits.find(k => String(k.id) === String(id));
       if (!kit) return;
 
@@ -1642,7 +1629,9 @@ ${econInfo ? `💰 *Economia de R$ ${econInfo.economia}!*` : ''}
         econText = `\n💰 *Economia de R$ ${eco}!*`;
       }
 
-      const corpoMsg = `🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
+      const textoZap = `${kitUrl}
+
+🥩 *CHURRASBOOM - OFERTA DE CHURRASCO* 🔥
 
 *${kit.nome}*
 ${kit.descricao ? '_' + kit.descricao + '_\n' : ''}
@@ -1653,14 +1642,8 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
 
 👆 *CLIQUE NA FOTO DO KIT ACIMA PARA PEDIR NO WHATSAPP!* 📲`;
 
-      const textoZap = comLink ? `${kitUrl}\n\n${corpoMsg}` : corpoMsg;
-
       navigator.clipboard.writeText(textoZap).then(() => {
-        if (comLink) {
-          showToast(`Copiado com link do "${kit.nome}"! Espere a foto carregar e apague o link se desejar.`, '💡');
-        } else {
-          showToast(`📋 Mensagem sem link do "${kit.nome}" copiada com sucesso!`, '✅');
-        }
+        showToast(`📋 Mensagem com link do "${kit.nome}" copiada com sucesso!`, '✅');
       }).catch(() => {
         prompt('Copie a mensagem completa abaixo:', textoZap);
       });
@@ -1774,20 +1757,13 @@ ${precoDe ? '❌ De: ~R$ ' + precoDe + '~\n' : ''}🔥 *Por apenas: R$ ${precoPo
       if (editingKitId === String(id)) cancelarEdicao();
     };
 
-    // Copiar Texto Formatado para WhatsApp (com ou sem link)
-    window.copiarMensagemFormatada = function(comLink = false) {
-      const kitUrl = generatedCurrentLink;
-      const textSemLink = simZapMessage.textContent;
-      const textFinal = comLink ? `${kitUrl}\n\n${textSemLink}` : textSemLink;
-
-      navigator.clipboard.writeText(textFinal).then(() => {
-        if (comLink) {
-          showToast('Copiado com link! Cole no Zap, espere a foto carregar e apague o link se desejar.', '💡');
-        } else {
-          showToast('Mensagem sem link copiada com sucesso!', '📋');
-        }
+    // Copiar Mensagem Completa com Link
+    window.copiarMensagemFormatada = function() {
+      const text = simZapMessage.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Mensagem completa com link copiada para o WhatsApp!', '✅');
       }).catch(() => {
-        prompt('Copie a mensagem abaixo:', textFinal);
+        prompt('Copie a mensagem abaixo:', text);
       });
     };
 
