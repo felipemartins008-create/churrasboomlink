@@ -1068,6 +1068,8 @@
 
       const localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
       const deletedIds = JSON.parse(localStorage.getItem('churras_deleted_ids') || '[]');
+      const deletedSet = new Set(deletedIds.map(x => String(x).trim().toLowerCase()));
+
       const MOCK_NAMES = [
         'kit churrasco prime família (6 a 8 pessoas)',
         'kit churrasco prime familia (6 a 8 pessoas)',
@@ -1075,29 +1077,42 @@
         'kit churrasco casal vip (2 a 3 pessoas)'
       ];
 
-      // Mescla kits locais criados no navegador com kits do servidor
-      const mergedMap = new Map();
-      localKits.forEach(k => mergedMap.set(String(k.id), k));
-      serverKits.forEach(k => {
-        if (!mergedMap.has(String(k.id))) {
-          mergedMap.set(String(k.id), k);
-        }
-      });
+      function isDeleted(k) {
+        if (!k) return true;
+        const kId = String(k.id || '').trim().toLowerCase();
+        const kName = String(k.nome || '').trim().toLowerCase();
+        const kSlug = String(k.slug || '').trim().toLowerCase();
+        return deletedSet.has(kId) || deletedSet.has(kName) || (kSlug && deletedSet.has(kSlug));
+      }
 
-      // Filtra estritamente os kits excluídos e os pré-definidos de teste
-      const nameSet = new Set();
+      // Mescla kits locais e do servidor respeitando estritamente os excluídos
+      const seenNames = new Set();
       const uniqueKits = [];
-      for (const k of Array.from(mergedMap.values())) {
-        if (deletedIds.includes(String(k.id))) continue;
+
+      for (const k of localKits) {
+        if (isDeleted(k)) continue;
         if (k.id === '1' || k.id === '2' || k.id === '3') continue;
         const normName = (k.nome || '').trim().toLowerCase();
         if (MOCK_NAMES.includes(normName)) continue;
-        if (normName && !nameSet.has(normName)) {
-          nameSet.add(normName);
+        if (normName && !seenNames.has(normName)) {
+          seenNames.add(normName);
           uniqueKits.push(k);
         }
       }
+
+      for (const k of serverKits) {
+        if (isDeleted(k)) continue;
+        if (k.id === '1' || k.id === '2' || k.id === '3') continue;
+        const normName = (k.nome || '').trim().toLowerCase();
+        if (MOCK_NAMES.includes(normName)) continue;
+        if (normName && !seenNames.has(normName)) {
+          seenNames.add(normName);
+          uniqueKits.push(k);
+        }
+      }
+
       kits = uniqueKits;
+      localStorage.setItem('churrasboom_kits', JSON.stringify(kits));
 
       const domain = getActiveDomain();
       document.getElementById('cfgBaseUrl').value = domain;
@@ -1293,7 +1308,10 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      imageStatusDica.innerHTML = `⏳ <strong>Compactando e enviando foto para a nuvem do WhatsApp...</strong>`;
+      editingBannerUrl = null; // Descarta foto anterior para não reutilizar imagem errada!
+      currentImageBase64 = null;
+
+      imageStatusDica.innerHTML = `⏳ <strong>Compactando e enviando nova foto para a nuvem do WhatsApp...</strong>`;
 
       try {
         const result = await compactarImagemParaWhatsApp(file);
@@ -1586,7 +1604,7 @@ ${itensText}
                 <a href="${link}" target="_blank" class="btn btn-outline btn-sm" title="Ver Página">
                   👁️ Ver
                 </a>
-                <button type="button" class="btn btn-danger btn-sm" onclick="excluirKit('${kit.id}', '${escapeHtml(kit.nome)}')" title="Excluir" style="margin-left: auto;">
+                <button type="button" class="btn btn-danger btn-sm" onclick="excluirKit('${kit.id}')" title="Excluir" style="margin-left: auto;">
                   🗑️
                 </button>
               </div>
@@ -1715,31 +1733,53 @@ ${itensText}
     };
 
     // Excluir Kit
-    window.excluirKit = async function(id, nome) {
-      if (!confirm(`Deseja realmente excluir o kit "${nome}"?`)) return;
-
-      // 1. Remove da lista de kits locais
+    window.excluirKit = async function(id) {
       let localKits = JSON.parse(localStorage.getItem('churrasboom_kits') || '[]');
-      localKits = localKits.filter(k => String(k.id) !== String(id));
+      const kit = kits.find(k => String(k.id) === String(id)) || localKits.find(k => String(k.id) === String(id));
+      const kitNome = kit ? kit.nome : 'este kit';
+      const normName = kit ? (kit.nome || '').trim().toLowerCase() : '';
+      const slug = kit ? (kit.slug || '').trim().toLowerCase() : '';
+
+      if (!confirm(`Deseja realmente excluir "${kitNome}"?`)) return;
+
+      // 1. Remove de churrasboom_kits no localStorage por ID, Nome e Slug
+      localKits = localKits.filter(k => {
+        const kId = String(k.id);
+        const kName = (k.nome || '').trim().toLowerCase();
+        const kSlug = (k.slug || '').trim().toLowerCase();
+        return kId !== String(id) && (!normName || kName !== normName) && (!slug || kSlug !== slug);
+      });
       localStorage.setItem('churrasboom_kits', JSON.stringify(localKits));
 
-      // 2. Salva na lista permanente de IDs excluídos (para NUNCA mais voltar do servidor)
+      // 2. Salva na lista permanente de excluídos: ID, Nome e Slug (para NUNCA mais voltar do servidor)
       let deletedIds = JSON.parse(localStorage.getItem('churras_deleted_ids') || '[]');
-      if (!deletedIds.includes(String(id))) {
-        deletedIds.push(String(id));
-        localStorage.setItem('churras_deleted_ids', JSON.stringify(deletedIds));
+      if (!deletedIds.includes(String(id))) deletedIds.push(String(id));
+      if (normName && !deletedIds.includes(normName)) deletedIds.push(normName);
+      if (slug && !deletedIds.includes(slug)) deletedIds.push(slug);
+      localStorage.setItem('churras_deleted_ids', JSON.stringify(deletedIds));
+
+      // 3. Tenta deletar no backend (por ID, Slug e Nome)
+      try { await fetch(`/api/kits/${encodeURIComponent(id)}`, { method: 'DELETE' }); } catch (e) {}
+      if (slug) { try { await fetch(`/api/kits/${encodeURIComponent(slug)}`, { method: 'DELETE' }); } catch (e) {} }
+      if (normName) { try { await fetch(`/api/kits/${encodeURIComponent(normName)}`, { method: 'DELETE' }); } catch (e) {} }
+
+      // 4. Remove da memória
+      kits = kits.filter(k => {
+        const kId = String(k.id);
+        const kName = (k.nome || '').trim().toLowerCase();
+        const kSlug = (k.slug || '').trim().toLowerCase();
+        return kId !== String(id) && (!normName || kName !== normName) && (!slug || kSlug !== slug);
+      });
+
+      // 5. Se o formulário ou simulador estava mostrando o kit excluído, limpa imediatamente!
+      const currentFormName = document.getElementById('nome').value.trim().toLowerCase();
+      if (editingKitId === String(id) || (normName && currentFormName === normName)) {
+        cancelarEdicao();
       }
 
-      // 3. Tenta deletar no backend (para ambiente localhost)
-      try {
-        await fetch(`/api/kits/${id}`, { method: 'DELETE' });
-      } catch (e) {}
-
-      kits = kits.filter(k => String(k.id) !== String(id));
-
-      showToast(`Kit "${nome}" removido permanentemente!`, '🗑️');
+      showToast(`Anúncio "${kitNome}" excluído permanentemente!`, '🗑️');
       renderKits();
-      if (editingKitId === String(id)) cancelarEdicao();
+      atualizarSimulador();
     };
 
     // Copiar Mensagem Completa com Link

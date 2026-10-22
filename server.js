@@ -313,27 +313,32 @@ app.post('/api/kits', async (req, res) => {
       processedItens = itens.map(i => String(i).trim()).filter(i => i.length > 0).slice(0, 8);
     }
 
-    // Edição de kit existente
-    if (id) {
-      const idx = kits.findIndex(k => String(k.id) === String(id));
-      if (idx !== -1) {
-        kits[idx] = {
-          ...kits[idx],
-          nome: nome.trim(),
-          precoAncoragem: precoAncoragem || '0,00',
-          precoReal: precoReal || '0,00',
-          bannerUrl: finalBannerUrl,
-          itens: processedItens,
-          descricao: descricao || '',
-          whatsappMsg: whatsappMsg || ''
-        };
-        saveKits(kits);
-        return res.json({ success: true, kit: kits[idx], updated: true });
-      }
+    // Busca por id, por slug ou por nome para evitar qualquer duplicação
+    const normName = nome.trim().toLowerCase();
+    let baseSlug = generateSlug(nome);
+    const existingIdx = kits.findIndex(k => 
+      (id && String(k.id) === String(id)) || 
+      (k.nome && k.nome.trim().toLowerCase() === normName) ||
+      (k.slug && k.slug === baseSlug)
+    );
+
+    if (existingIdx !== -1) {
+      kits[existingIdx] = {
+        ...kits[existingIdx],
+        id: id || kits[existingIdx].id,
+        slug: kits[existingIdx].slug || baseSlug,
+        nome: nome.trim(),
+        precoReal: precoReal || '0,00',
+        bannerUrl: finalBannerUrl,
+        itens: processedItens,
+        descricao: descricao || '',
+        whatsappMsg: whatsappMsg || ''
+      };
+      saveKits(kits);
+      return res.json({ success: true, kit: kits[existingIdx], updated: true });
     }
 
     // Novo Kit
-    let baseSlug = generateSlug(nome);
     let count = 1;
     let finalSlug = baseSlug;
     while (kits.some(k => k.slug === finalSlug)) {
@@ -341,10 +346,9 @@ app.post('/api/kits', async (req, res) => {
     }
 
     const newKit = {
-      id: Date.now().toString(),
+      id: id || Date.now().toString(),
       slug: finalSlug,
       nome: nome.trim(),
-      precoAncoragem: precoAncoragem || '0,00',
       precoReal: precoReal || '0,00',
       bannerUrl: finalBannerUrl,
       itens: processedItens,
@@ -358,14 +362,12 @@ app.post('/api/kits', async (req, res) => {
     res.json({ success: true, kit: newKit });
   } catch (err) {
     console.error('Erro ao salvar kit:', err);
-    // Em vez de 500 que quebra o cliente, retorna o kit para ser gerenciado localmente
     res.json({
       success: true,
       kit: {
-        id: Date.now().toString(),
+        id: req.body.id || Date.now().toString(),
         slug: generateSlug(req.body.nome || 'kit'),
         nome: req.body.nome,
-        precoAncoragem: req.body.precoAncoragem,
         precoReal: req.body.precoReal,
         bannerUrl: req.body.bannerUrl || '/assets/banner-churrasco-prime.jpg',
         itens: req.body.itens || [],
@@ -376,12 +378,18 @@ app.post('/api/kits', async (req, res) => {
   }
 });
 
-// API: Deletar kit
+// API: Deletar kit por ID, Slug ou Nome
 app.delete('/api/kits/:id', (req, res) => {
+  const target = decodeURIComponent(String(req.params.id)).trim().toLowerCase();
   let kits = getKits();
-  kits = kits.filter(k => String(k.id) !== String(req.params.id));
+  kits = kits.filter(k => {
+    const kId = String(k.id).toLowerCase();
+    const kSlug = (k.slug || '').toLowerCase();
+    const kNome = (k.nome || '').trim().toLowerCase();
+    return kId !== target && kSlug !== target && kNome !== target;
+  });
   saveKits(kits);
-  res.json({ success: true });
+  res.json({ success: true, count: kits.length });
 });
 
 // Rota Cloud Dinâmica (/c) - 100% Stateless: carrega todos os dados via URL
