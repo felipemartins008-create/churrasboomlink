@@ -54,21 +54,22 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>${escapeHtml(pageTitle)}</title>
 
-  <!-- Meta Tags para o WhatsApp: Apenas a Foto Sem Texto Acompanhando -->
+  <!-- Meta Tags Essenciais para o WhatsApp (Open Graph com Foto em Destaque) -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="" />
+  <meta property="og:site_name" content="${escapeHtml(storeName)}" />
+  <meta property="og:title" content="${escapeHtml(kit.nome)}" />
   <meta property="og:description" content="" />
   <meta name="description" content="" />
   <meta property="og:image" content="${absoluteImageUrl}" />
   <meta property="og:image:secure_url" content="${absoluteImageUrl}" />
   <meta property="og:image:type" content="image/jpeg" />
-  <meta property="og:image:width" content="800" />
-  <meta property="og:image:height" content="800" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="${escapeHtml(kit.nome)}" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="" />
+  <meta name="twitter:title" content="${escapeHtml(kit.nome)}" />
   <meta name="twitter:description" content="" />
   <meta name="twitter:image" content="${absoluteImageUrl}" />
 

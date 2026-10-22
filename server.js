@@ -452,7 +452,7 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
     kit = { ...kit };
   }
 
-  // Se houver imagem personalizada na URL (?i=https://... ou ?i=kit_... ou ?i=...)
+  // Se houver imagem personalizada na URL (?i=https://... ou ?i=kit_... ou ?i=u_... ou ?i=...)
   const customImg = req.query.i || req.query.img;
   if (customImg) {
     if (customImg.startsWith('http')) {
@@ -460,6 +460,8 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
     } else if (customImg.startsWith('kit_')) {
       const host = getConfig(req).baseUrl || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
       kit.bannerUrl = `${host}/api/image/${customImg}.jpg`;
+    } else if (customImg.startsWith('u_')) {
+      kit.bannerUrl = `https://h.uguu.se/${customImg.replace('u_', '')}`;
     } else {
       kit.bannerUrl = `https://files.catbox.moe/${customImg}`;
     }

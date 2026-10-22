@@ -908,6 +908,7 @@
                 <div class="sim-og-card">
                   <img id="simOgImg" src="/assets/banner-churrasco-prime.jpg" alt="Preview Kit" class="sim-og-img">
                   <div class="sim-og-meta">
+                    <div class="sim-og-title" id="simOgTitle" style="font-size: 13.5px; font-weight: 800; color: #ffffff; line-height: 1.3; margin-bottom: 4px;">Kit Churrasco</div>
                     <div class="sim-og-link" id="simOgLink">churrasboomlink.vercel.app</div>
                   </div>
                 </div>
@@ -1035,7 +1036,20 @@
       const domain = getActiveDomain();
       const slug = (kit.slug || kit.nome || 'kit-churrasco').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-      return `${domain}/k/${slug}`;
+      let imgParam = '';
+      if (kit.bannerUrl && !kit.bannerUrl.includes('banner-churrasco-prime')) {
+        if (kit.bannerUrl.includes('catbox.moe/')) {
+          const fileId = kit.bannerUrl.split('/').pop();
+          imgParam = `?i=${fileId}`;
+        } else if (kit.bannerUrl.includes('uguu.se/')) {
+          const fileId = kit.bannerUrl.split('/').pop();
+          imgParam = `?i=u_${fileId}`;
+        } else if (kit.bannerUrl.startsWith('http')) {
+          imgParam = `?i=${encodeURIComponent(kit.bannerUrl)}`;
+        }
+      }
+
+      return `${domain}/k/${slug}${imgParam}`;
     }
 
     // Inicialização
@@ -1342,7 +1356,9 @@
         simOgImg.src = DEFAULT_BANNER;
       }
 
-      // Open Graph Box (Sem texto de subtítulo acompanhando o link, apenas foto e domínio)
+      // Open Graph Box (Foto + Título + Domínio, sem texto de subtítulo)
+      const simOgTitle = document.getElementById('simOgTitle');
+      if (simOgTitle) simOgTitle.textContent = nome;
       if (simOgLink) {
         try {
           simOgLink.textContent = new URL(kitUrl, window.location.origin).hostname;
