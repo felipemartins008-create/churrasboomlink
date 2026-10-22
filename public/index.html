@@ -1038,7 +1038,13 @@
 
       let imgParam = '';
       if (kit.bannerUrl && !kit.bannerUrl.includes('banner-churrasco-prime')) {
-        if (kit.bannerUrl.includes('catbox.moe/')) {
+        if (kit.bannerUrl.includes('litter.catbox.moe/')) {
+          const fileId = kit.bannerUrl.split('/').pop();
+          imgParam = `?i=l_${fileId}`;
+        } else if (kit.bannerUrl.includes('files.catbox.moe/')) {
+          const fileId = kit.bannerUrl.split('/').pop();
+          imgParam = `?i=f_${fileId}`;
+        } else if (kit.bannerUrl.includes('catbox.moe/')) {
           const fileId = kit.bannerUrl.split('/').pop();
           imgParam = `?i=${fileId}`;
         } else if (kit.bannerUrl.includes('uguu.se/')) {
@@ -1278,26 +1284,41 @@
         console.warn('Upload via backend falhou, tentando direto:', e);
       }
 
-      // 2. Fallback direto pelo navegador para Catbox CDN
+      // 2. Fallback direto pelo navegador para CDNs públicas permanentes e de contingência
       try {
         const res = await fetch(base64Data);
         const blob = await res.blob();
-        const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', blob, 'kit.jpg');
-
-        const catRes = await fetch('https://catbox.moe/user/api.php', {
-          method: 'POST',
-          body: formData
-        });
-        if (catRes.ok) {
-          const text = await catRes.text();
-          if (text.startsWith('http')) {
-            return text.trim();
+        
+        // Tenta Catbox permanente
+        try {
+          const formData = new FormData();
+          formData.append('reqtype', 'fileupload');
+          formData.append('fileToUpload', blob, 'kit.jpg');
+          const catRes = await fetch('https://catbox.moe/user/api.php', {
+            method: 'POST',
+            body: formData
+          });
+          if (catRes.ok) {
+            const text = await catRes.text();
+            if (text.startsWith('http')) return text.trim();
           }
+        } catch (eCat) {}
+
+        // Se Catbox falhar, tenta Litterbox
+        const formLitter = new FormData();
+        formLitter.append('reqtype', 'fileupload');
+        formLitter.append('time', '72h');
+        formLitter.append('fileToUpload', blob, 'kit.jpg');
+        const litRes = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
+          method: 'POST',
+          body: formLitter
+        });
+        if (litRes.ok) {
+          const text = await litRes.text();
+          if (text.startsWith('http')) return text.trim();
         }
       } catch (err) {
-        console.warn('Upload direto para Catbox falhou:', err);
+        console.warn('Upload direto via navegador falhou:', err);
       }
 
       return null;

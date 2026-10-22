@@ -16,9 +16,17 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
 
   // Garantir URL absoluta da imagem para o scraper do WhatsApp
   let absoluteImageUrl = kit.bannerUrl || '/assets/banner-churrasco-prime.jpg';
+  const cleanBase = baseUrl.replace(/\/$/, '');
   if (!absoluteImageUrl.startsWith('http')) {
-    const cleanBase = baseUrl.replace(/\/$/, '');
     absoluteImageUrl = `${cleanBase}${absoluteImageUrl.startsWith('/') ? '' : '/'}${absoluteImageUrl}`;
+  }
+
+  // Se houver imagem customizada, usa a rota direta do próprio domínio (/api/og-image)
+  // que garante entrega imediata e compatibilidade 100% com o robô do WhatsApp sem 404
+  let ogImageUrl = absoluteImageUrl;
+  if (kit.customImgParam) {
+    const fileParam = kit.customImgParam.endsWith('.jpg') ? kit.customImgParam : `${kit.customImgParam}.jpg`;
+    ogImageUrl = `${cleanBase}/api/og-image/${fileParam}`;
   }
 
   const precoPor = formatCurrency(kit.precoReal);
@@ -60,8 +68,8 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
   <meta property="og:title" content="${escapeHtml(kit.nome)}" />
   <meta property="og:description" content="" />
   <meta name="description" content="" />
-  <meta property="og:image" content="${absoluteImageUrl}" />
-  <meta property="og:image:secure_url" content="${absoluteImageUrl}" />
+  <meta property="og:image" content="${ogImageUrl}" />
+  <meta property="og:image:secure_url" content="${ogImageUrl}" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -71,7 +79,7 @@ function generateKitPage(kit, baseUrl = '', config = {}) {
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(kit.nome)}" />
   <meta name="twitter:description" content="" />
-  <meta name="twitter:image" content="${absoluteImageUrl}" />
+  <meta name="twitter:image" content="${ogImageUrl}" />
 
   <!-- Fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

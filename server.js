@@ -108,21 +108,22 @@ function generateSlug(text) {
 
 // Upload resiliente para nuvem pública (Uguu, Litterbox, Catbox em paralelo com Promise.any)
 async function uploadToCloud(buffer) {
-  const tryUguu = async () => {
+  // 1. Provedor Permanente Principal: Catbox (arquivos não expiram)
+  const tryCatbox = async () => {
     const fd = new FormData();
-    fd.append('files[]', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
-    const res = await fetch('https://uguu.se/upload', {
+    fd.append('reqtype', 'fileupload');
+    fd.append('fileToUpload', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
+    const res = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       body: fd,
-      signal: AbortSignal.timeout(4500)
+      signal: AbortSignal.timeout(6000)
     });
-    const data = await res.json();
-    if (data && data.files && data.files[0] && data.files[0].url) {
-      return data.files[0].url;
-    }
-    throw new Error('uguu failed');
+    const text = (await res.text()).trim();
+    if (text.startsWith('http')) return text;
+    throw new Error('catbox failed');
   };
 
+  // 2. Provedor de contingência: Litterbox (temporário 72h)
   const tryLitterbox = async () => {
     const fd = new FormData();
     fd.append('reqtype', 'fileupload');
@@ -138,24 +139,31 @@ async function uploadToCloud(buffer) {
     throw new Error('litterbox failed');
   };
 
-  const tryCatbox = async () => {
+  // 3. Provedor de contingência: Uguu
+  const tryUguu = async () => {
     const fd = new FormData();
-    fd.append('reqtype', 'fileupload');
-    fd.append('fileToUpload', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
-    const res = await fetch('https://catbox.moe/user/api.php', {
+    fd.append('files[]', new Blob([buffer], { type: 'image/jpeg' }), 'kit.jpg');
+    const res = await fetch('https://uguu.se/upload', {
       method: 'POST',
       body: fd,
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(4500)
     });
-    const text = (await res.text()).trim();
-    if (text.startsWith('http')) return text;
-    throw new Error('catbox failed');
+    const data = await res.json();
+    if (data && data.files && data.files[0] && data.files[0].url) {
+      return data.files[0].url;
+    }
+    throw new Error('uguu failed');
   };
 
   try {
-    return await Promise.any([tryUguu(), tryLitterbox(), tryCatbox()]);
-  } catch (err) {
-    console.warn('Todos os provedores de nuvem rápidos falharam:', err.message);
+    return await tryCatbox();
+  } catch (errCatbox) {
+    console.warn('Catbox permanente falhou, tentando contingência:', errCatbox.message);
+    try {
+      return await Promise.any([tryLitterbox(), tryUguu()]);
+    } catch (errCont) {
+      console.warn('Todos os provedores de nuvem falharam:', errCont.message);
+    }
   }
 
   return null;
@@ -205,6 +213,72 @@ app.get('/api/image/:id', (req, res) => {
   if (fs.existsSync(localPath)) {
     res.setHeader('Content-Type', 'image/jpeg');
     return res.sendFile(localPath);
+  }
+  res.redirect('/assets/banner-churrasco-prime.jpg');
+});
+
+// Endpoint de alta performance para scrapers do WhatsApp/Facebook
+// Garante entrega da foto sempre sob o mesmo domínio da Vercel
+app.get('/api/og-image/:id', async (req, res) => {
+  const rawId = req.params.id || '';
+  const cleanId = rawId.replace(/\.jpg$/i, '');
+
+  if (!cleanId) {
+    const fallback = path.join(__dirname, 'public', 'assets', 'banner-churrasco-prime.jpg');
+    return res.sendFile(fallback);
+  }
+
+  // 1. Se estiver na memória rápida do servidor
+  if (imageStore.has(cleanId)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+    return res.send(imageStore.get(cleanId));
+  }
+
+  // 2. URLs candidatas na nuvem conforme o prefixo
+  const targetUrls = [];
+  if (cleanId.startsWith('l_')) {
+    const file = cleanId.replace('l_', '');
+    targetUrls.push(`https://litter.catbox.moe/${file.endsWith('.jpg') ? file : file + '.jpg'}`);
+  } else if (cleanId.startsWith('f_')) {
+    const file = cleanId.replace('f_', '');
+    targetUrls.push(`https://files.catbox.moe/${file.endsWith('.jpg') ? file : file + '.jpg'}`);
+  } else if (cleanId.startsWith('u_')) {
+    const file = cleanId.replace('u_', '');
+    targetUrls.push(`https://h.uguu.se/${file.endsWith('.jpg') ? file : file + '.jpg'}`);
+  } else if (cleanId.startsWith('kit_')) {
+    const tmp = path.join('/tmp', 'images', `${cleanId}.jpg`);
+    if (fs.existsSync(tmp)) return res.sendFile(tmp);
+    const loc = path.join(__dirname, 'public', 'uploads', `${cleanId}.jpg`);
+    if (fs.existsSync(loc)) return res.sendFile(loc);
+  } else {
+    // Sem prefixo (ex: ujymmk ou ujymmk.jpg) -> busca no Litterbox primeiro (onde foi gravado), depois Catbox
+    const file = cleanId.endsWith('.jpg') ? cleanId : `${cleanId}.jpg`;
+    targetUrls.push(`https://litter.catbox.moe/${file}`);
+    targetUrls.push(`https://files.catbox.moe/${file}`);
+  }
+
+  for (const url of targetUrls) {
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(4500) });
+      if (resp.ok) {
+        const arrayBuf = await resp.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        if (buf.length > 500) {
+          res.setHeader('Content-Type', 'image/jpeg');
+          res.setHeader('Content-Length', buf.length);
+          res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
+          return res.send(buf);
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 3. Fallback seguro: banner oficial do Prime
+  const fallbackPath = path.join(__dirname, 'public', 'assets', 'banner-churrasco-prime.jpg');
+  if (fs.existsSync(fallbackPath)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    return res.sendFile(fallbackPath);
   }
   res.redirect('/assets/banner-churrasco-prime.jpg');
 });
@@ -460,9 +534,10 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
     kit = { ...kit };
   }
 
-  // Se houver imagem personalizada na URL (?i=https://... ou ?i=kit_... ou ?i=u_... ou ?i=...)
+  // Se houver imagem personalizada na URL (?i=https://... ou ?i=kit_... ou ?i=u_... ou ?i=l_... ou ?i=f_... ou ?i=...)
   const customImg = req.query.i || req.query.img;
   if (customImg) {
+    kit.customImgParam = customImg;
     if (customImg.startsWith('http')) {
       kit.bannerUrl = customImg;
     } else if (customImg.startsWith('kit_')) {
@@ -470,8 +545,13 @@ app.get(['/k/:slug', '/:slug'], (req, res, next) => {
       kit.bannerUrl = `${host}/api/image/${customImg}.jpg`;
     } else if (customImg.startsWith('u_')) {
       kit.bannerUrl = `https://h.uguu.se/${customImg.replace('u_', '')}`;
+    } else if (customImg.startsWith('l_')) {
+      kit.bannerUrl = `https://litter.catbox.moe/${customImg.replace('l_', '')}`;
+    } else if (customImg.startsWith('f_')) {
+      kit.bannerUrl = `https://files.catbox.moe/${customImg.replace('f_', '')}`;
     } else {
-      kit.bannerUrl = `https://files.catbox.moe/${customImg}`;
+      // Compatibilidade retroativa para links sem prefixo (como ujymmk.jpg gravado no Litterbox)
+      kit.bannerUrl = `https://litter.catbox.moe/${customImg}`;
     }
   }
 
